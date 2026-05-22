@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Princesa Emanuelly - 33 Fases</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: #000;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+
+        .screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0a0a2a, #1a0a3a);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+        }
+
+        .card {
+            background: rgba(0,0,0,0.9);
+            border-radius: 50px;
+            padding: 35px 30px;
+            text-align: center;
+            border: 3px solid #ff69b4;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 0 30px rgba(255,105,180,0.3);
+        }
+
+        .card h1 { color: #ff69b4; margin-bottom: 20px; font-size: 22px; }
+        .card input {
+            width: 85%;
+            padding: 14px;
+            margin: 10px;
+            border-radius: 40px;
+            border: none;
+            font-size: 14px;
+            text-align: center;
+            background: #222;
+            color: white;
+            border: 1px solid #ff69b4;
+        }
+        .card button {
+            border: none;
+            padding: 12px 25px;
+            margin: 8px;
+            border-radius: 40px;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+        .card button:active { transform: scale(0.97); }
+        .btn-orange { background: #ff8800; color: white; }
+        .btn-green { background: #44ff44; color: #000; }
+        .btn-yellow { background: #ffaa33; color: #000; }
+        .btn-red { background: #ff4444; color: white; }
+        .btn-blue { background: #4488ff; color: white; }
+
+        .code-box { background: #111; padding: 15px; border-radius: 30px; margin: 15px 0; border: 1px solid #ff69b4; }
+        .code-box span { color: #ff69b4; font-size: 32px; font-weight: bold; letter-spacing: 5px; }
+
+        .waiting-status { background: #1a1a2a; padding: 12px; border-radius: 30px; margin: 15px 0; color: #ffcc44; font-size: 13px; }
+
+        .notification {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #44ff44;
+            color: #000;
+            padding: 12px 24px;
+            border-radius: 40px;
+            font-weight: bold;
+            z-index: 300;
+            display: none;
+            font-size: 14px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+        }
+
+        .game-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: #0a0a1a;
+            justify-content: space-between;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            flex: 1;
+            min-height: 0;
+            background: #87CEEB;
+            cursor: pointer;
+        }
+
+        .info-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #000;
+            padding: 8px 15px;
+            color: #ffefb9;
+            font-weight: bold;
+            font-size: 11px;
+            font-family: monospace;
+            flex-wrap: wrap;
+            gap: 5px;
+            border-bottom: 2px solid #ff69b4;
+        }
+
+        .game-title { background: #000; color: #ffffff; padding: 4px 12px; border-radius: 30px; font-size: 11px; font-weight: bold; border: 1px solid #ff69b4; }
+        .phase-badge, .chance-badge, .lives-badge { padding: 3px 10px; border-radius: 25px; font-size: 10px; }
+        .phase-badge { background: #ff69b4; color: #fff; }
+        .chance-badge { background: #ffaa33; color: #2a1a00; }
+        .lives-badge { background: #ff4444; color: #fff; }
+
+        .touch-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: rgba(0,0,0,0.85);
+            gap: 15px;
+        }
+
+        .dpad { display: flex; gap: 20px; }
+        .right-actions { display: flex; gap: 12px; align-items: center; }
+
+        .btn {
+            width: 65px;
+            height: 65px;
+            border-radius: 60px;
+            font-size: 28px;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 3px 0 rgba(0,0,0,0.3);
+        }
+        .btn:active { transform: translateY(2px); }
+
+        .btn-left, .btn-right { background: radial-gradient(#f5b062, #c26a22); color: #2d1c08; }
+        .btn-jump { background: radial-gradient(#e55a3a, #aa2a1a); color: white; width: 75px; font-size: 24px; }
+        .btn-torch { background: radial-gradient(#ff6600, #cc4400); color: white; width: 75px; font-size: 20px; }
+
+        @media (max-width: 600px) {
+            .btn { width: 55px; height: 55px; font-size: 24px; }
+            .btn-jump, .btn-torch { width: 65px; font-size: 20px; }
+            .card { padding: 25px 20px; }
+        }
+
+        .controls-footer { text-align: center; padding: 6px; color: #e6c88a; font-size: 9px; background: rgba(0,0,0,0.5); }
+
+        .exit-btn {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: #ff4444;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 150;
+            display: none;
+        }
+
+        .connection-status {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: #0f0;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 10px;
+            z-index: 150;
+        }
+
+        .friend-request {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #1a1a2a, #2a2a3a);
+            border: 3px solid #ff69b4;
+            border-radius: 50px;
+            padding: 30px 40px;
+            text-align: center;
+            z-index: 350;
+            display: none;
+            min-width: 320px;
+        }
+        .friend-request p { color: white; font-size: 18px; margin-bottom: 20px; }
+        .friend-request .request-name { color: #ff69b4; font-size: 24px; font-weight: bold; }
+        .friend-request button { padding: 12px 25px; margin: 10px; border-radius: 40px; border: none; cursor: pointer; font-weight: bold; font-size: 14px; }
+        .accept-btn { background: #44ff44; color: #000; }
+        .reject-btn { background: #ff4444; color: #fff; }
+        
+        .save-friend-notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #1a1a2a, #2a2a3a);
+            border: 3px solid #ff69b4;
+            border-radius: 50px;
+            padding: 30px 40px;
+            text-align: center;
+            z-index: 350;
+            display: none;
+            min-width: 320px;
+        }
+        .save-friend-notification p { color: white; font-size: 18px; margin-bottom: 20px; }
+        .save-friend-notification .friend-name { color: #ff69b4; font-size: 24px; font-weight: bold; }
+        .save-friend-notification button { padding: 12px 25px; margin: 10px; border-radius: 40px; border: none; cursor: pointer; font-weight: bold; font-size: 14px; }
+        .save-yes { background: #44ff44; color: #000; }
+        .save-no { background: #ff4444; color: #fff; }
+    </style>
+</head>
+<body>
+
+<!-- TELA INICIAL -->
+<div id="startScreen" class="screen">
+    <div class="card">
+        <h1>👑 PRINCESA EMANUELLY 👑</h1>
+        <input type="text" id="playerName" placeholder="Seu nome" maxlength="15" value="Princesa">
+        <div class="code-box">
+            <div style="color:#aaa; font-size:12px;">📋 SEU CÓDIGO:</div>
+            <span id="myCode">------</span>
+        </div>
+        <button id="copyCodeBtn" class="btn-orange">📋 COPIAR</button>
+        <button id="createRoomBtn" class="btn-green">🎮 CRIAR SALA</button>
+        <button id="joinRoomBtn" class="btn-blue">🔗 ENTRAR EM SALA</button>
+        <button id="soloBtn" class="btn-yellow">🎮 JOGAR SOZINHO</button>
+    </div>
+</div>
+
+<!-- TELA DIGITAR CÓDIGO -->
+<div id="joinCodeScreen" class="screen" style="display: none;">
+    <div class="card">
+        <h1>🔗 DIGITE O CÓDIGO</h1>
+        <input type="text" id="roomCodeInput" placeholder="Código de 6 dígitos" maxlength="6">
+        <button id="confirmJoinBtn" class="btn-green">✅ ENTRAR</button>
+        <button id="cancelJoinBtn" class="btn-red">🔙 VOLTAR</button>
+    </div>
+</div>
+
+<!-- TELA LOBBY -->
+<div id="lobbyScreen" class="screen" style="display: none;">
+    <div class="card">
+        <h1>👥 AGUARDANDO...</h1>
+        <div class="code-box">
+            <span id="lobbyCodeDisplay">------</span>
+        </div>
+        <div class="waiting-status" id="waitingMsg">🟡 Aguardando amigo...</div>
+        <div id="playerConnectedMsg" style="color:#44ff44; margin:10px 0;"></div>
+        <button id="cancelRoomBtn" class="btn-red">🚪 CANCELAR</button>
+    </div>
+</div>
+
+<div id="notification" class="notification"></div>
+<div id="connectionStatus" class="connection-status">🔌 Desconectado</div>
+<div id="friendRequestPopup" class="friend-request">
+    <p><span class="request-name" id="requesterName">Amigo</span> quer jogar com você!</p>
+    <button id="acceptRequestBtn" class="accept-btn">✅ ACEITAR</button>
+    <button id="rejectRequestBtn" class="reject-btn">❌ RECUSAR</button>
+</div>
+<div id="saveFriendNotification" class="save-friend-notification">
+    <p>Deseja salvar <span class="friend-name" id="saveFriendName">Amigo</span> como amigo?</p>
+    <button id="saveYesBtn" class="save-yes">✅ SIM, SALVAR</button>
+    <button id="saveNoBtn" class="save-no">❌ NÃO</button>
+</div>
+
+<button id="exitGameBtn" class="exit-btn">🚪 SAIR</button>
+
+<div class="game-container" id="gameContainer">
+    <canvas id="gameCanvas" width="1000" height="500"></canvas>
+    <div class="info-panel">
+        <span class="game-title">⭐ PRINCESA EMANUELLY ⭐</span>
+        <span class="phase-badge" id="phaseText">FASE 1/33</span>
+        <span class="lives-badge" id="globalLivesText">💖 33</span>
+        <span class="chance-badge" id="chanceText">🎲 3/3</span>
+        <span>🍄 <span id="scoreText">0</span></span>
+        <span>🪙 <span id="coinText">0</span></span>
+        <span>🔥 ∞</span>
+        <span id="friendNameDisplay" style="color:#44ff44; background:#000; padding:3px 10px; border-radius:20px;"></span>
+    </div>
+    <div class="touch-controls">
+        <div class="dpad">
+            <button id="leftBtn" class="btn btn-left">◀</button>
+            <button id="rightBtn" class="btn btn-right">▶</button>
+        </div>
+        <div class="right-actions">
+            <button id="jumpBtn" class="btn btn-jump">⭐</button>
+            <button id="torchBtn" class="btn btn-torch">🔥</button>
+        </div>
+    </div>
+    <div class="controls-footer">
+        👆 Toque nos botões | 🔥 TOCHA INFINITA | 👹 GUARDIÃO 50 tochas
+    </div>
+</div>
+
+<script>
+// ========== CONFIGURAÇÃO DO FIREBASE ==========
+const firebaseConfig = {
+  apiKey: "AIzaSyBXkHVry23AhZnJ8BkRPb5CeM158j_w8eA",
+  authDomain: "online-princesa-nu.firebaseapp.com",
+  projectId: "online-princesa-nu",
+  storageBucket: "online-princesa-nu.firebasestorage.app",
+  messagingSenderId: "193616395445",
+  appId: "1:193616395445:web:2a7384c3cf971d8a9252fc"
+};
+
+let db = null;
+let multiplayerActive = false;
+let currentRoomId = null;
+let isHost = false;
+let otherPlayerId = null;
+let otherPlayerNameFB = null;
+let myPlayerId = null;
+let roomRef = null;
+let myPosRef = null;
+let otherPosRef = null;
+
+try {
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+    document.getElementById('connectionStatus').innerHTML = "✅ Firebase OK";
+} catch(e) {
+    document.getElementById('connectionStatus').innerHTML = "⚠️ Configure o Firebase";
+}
+
+let remotePlayerData = { x: 300, y: 430, w: 34, h: 38, facingRight: true, legAnim: 0, onGround: true };
+
+function generateRoomCode() { return Math.floor(100000 + Math.random() * 900000).toString(); }
+
+function showNotif(msg, bg = '#44ff44') {
+    const n = document.getElementById('notification');
+    n.innerHTML = msg;
+    n.style.background = bg;
+    n.style.display = 'block';
+    setTimeout(() => n.style.display = 'none', 2500);
+}
+
+function createMultiplayerRoom() {
+    const name = document.getElementById('playerName').value.trim();
+    if (!name) { showNotif('❌ Digite seu nome!', '#ff4444'); return; }
+    if (!db) { showNotif('❌ Firebase não configurado!', '#ff4444'); return; }
+    
+    const roomCode = generateRoomCode();
+    currentRoomId = roomCode;
+    isHost = true;
+    myPlayerId = Date.now().toString() + Math.random();
+    
+    roomRef = db.ref(`multiplayer_salas/${roomCode}`);
+    roomRef.set({
+        hostId: myPlayerId,
+        hostName: name,
+        status: 'waiting',
+        createdAt: Date.now()
+    });
+    
+    roomRef.child('guest').on('value', (snap) => {
+        const guest = snap.val();
+        if (guest && guest.id && !multiplayerActive) {
+            otherPlayerId = guest.id;
+            otherPlayerNameFB = guest.name;
+            multiplayerActive = true;
+            showNotif(`✅ ${otherPlayerNameFB} entrou na sala!`);
+            document.getElementById('connectionStatus').innerHTML = `👥 ${otherPlayerNameFB} conectado`;
+            document.getElementById('playerConnectedMsg').innerHTML = `🎮 Amigo: ${otherPlayerNameFB}`;
+            document.getElementById('waitingMsg').innerHTML = `🟢 ${otherPlayerNameFB} entrou! Iniciando...`;
+            setTimeout(() => startMultiplayerGame(), 1000);
+        }
+    });
+    
+    document.getElementById('startScreen').style.display = 'none';
+    document.getElementById('lobbyScreen').style.display = 'flex';
+    document.getElementById('lobbyCodeDisplay').innerHTML = roomCode;
+    document.getElementById('waitingMsg').innerHTML = `🟡 Aguardando amigo...<br>Código: <strong>${roomCode}</strong>`;
+    document.getElementById('connectionStatus').innerHTML = `🟡 Sala: ${roomCode}`;
+}
+
+function joinMultiplayerRoom(roomCode) {
+    const name = document.getElementById('playerName').value.trim();
+    if (!name) { showNotif('❌ Digite seu nome!', '#ff4444'); return; }
+    if (!db) { showNotif('❌ Firebase não configurado!', '#ff4444'); return; }
+    
+    currentRoomId = roomCode;
+    isHost = false;
+    myPlayerId = Date.now().toString() + Math.random();
+    
+    roomRef = db.ref(`multiplayer_salas/${roomCode}`);
+    roomRef.once('value', (snap) => {
+        const sala = snap.val();
+        if (!sala) { showNotif('❌ Sala não encontrada!', '#ff4444'); return; }
+        
+        otherPlayerId = sala.hostId;
+        otherPlayerNameFB = sala.hostName;
+        
+        roomRef.child('guest').set({ id: myPlayerId, name: name });
+        
+        multiplayerActive = true;
+        
+        document.getElementById('startScreen').style.display = 'none';
+        document.getElementById('lobbyScreen').style.display = 'flex';
+        document.getElementById('lobbyCodeDisplay').innerHTML = roomCode;
+        document.getElementById('waitingMsg').innerHTML = `🟡 Conectado a ${otherPlayerNameFB}. Aguardando...`;
+        document.getElementById('playerConnectedMsg').innerHTML = `🎮 Host: ${otherPlayerNameFB}`;
+        document.getElementById('connectionStatus').innerHTML = `👥 Conectado a ${otherPlayerNameFB}`;
+        
+        startMultiplayerGame();
+    });
+}
+
+function startMultiplayerGame() {
+    myPosRef = roomRef.child(`players/${myPlayerId}`);
+    otherPosRef = roomRef.child(`players/${otherPlayerId}`);
+    
+    if (typeof window.playerX !== 'undefined') {
+        myPosRef.set({ x: window.playerX, y: window.playerY, facingRight: window.playerFacingRight });
+    }
+    
+    otherPosRef.on('value', (snap) => {
+        const data = snap.val();
+        if (data && multiplayerActive) {
+            remotePlayerData.x = data.x || 300;
+            remotePlayerData.y = data.y || 430;
+            remotePlayerData.facingRight = data.facingRight || true;
+        }
+    });
+    
+    document.getElementById('friendNameDisplay').innerHTML = `👥 ${otherPlayerNameFB}`;
+    document.getElementById('lobbyScreen').style.display = 'none';
+    document.getElementById('gameContainer').style.display = 'flex';
+    document.getElementById('exitGameBtn').style.display = 'block';
+    document.getElementById('connectionStatus').innerHTML = `👥 Jogando com ${otherPlayerNameFB}`;
+    
+    if (typeof window.isMultiplayerActive !== 'undefined') window.isMultiplayerActive = true;
+    if (typeof window.otherPlayerGlobal !== 'undefined') window.otherPlayerGlobal = otherPlayerNameFB;
+    
+    setTimeout(() => {
+        document.getElementById('saveFriendName').innerHTML = otherPlayerNameFB;
+        document.getElementById('saveFriendNotification').style.display = 'block';
+    }, 2000);
+}
+
+function exitMultiplayer() {
+    if (roomRef) {
+        if (isHost && currentRoomId) db.ref(`multiplayer_salas/${currentRoomId}`).remove();
+        roomRef = null;
+    }
+    multiplayerActive = false;
+    document.getElementById('gameContainer').style.display = 'none';
+    document.getElementById('exitGameBtn').style.display = 'none';
+    document.getElementById('lobbyScreen').style.display = 'none';
+    document.getElementById('joinCodeScreen').style.display = 'none';
+    document.getElementById('startScreen').style.display = 'flex';
+    document.getElementById('connectionStatus').innerHTML = '🔌 Desconectado';
+    document.getElementById('friendNameDisplay').innerHTML = '';
+    if (typeof window.isMultiplayerActive !== 'undefined') window.isMultiplayerActive = false;
+}
+
+document.getElementById('saveYesBtn').onclick = () => {
+    let friends = JSON.parse(localStorage.getItem('princesa_friends') || '[]');
+    if (!friends.some(f => f.name === otherPlayerNameFB)) {
+        friends.push({ name: otherPlayerNameFB, code: currentRoomId });
+        localStorage.setItem('princesa_friends', JSON.stringify(friends));
+    }
+    document.getElementById('saveFriendNotification').style.display = 'none';
+    showNotif(`✅ ${otherPlayerNameFB} salvo!`);
+};
+document.getElementById('saveNoBtn').onclick = () => { document.getElementById('saveFriendNotification').style.display = 'none'; };
+
+// ========== JOGO ORIGINAL COMPLETO (SÓ CORRIGI A TELA AZUL) ==========
+(function() {
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    let W = 1000, H = 500;
+    const GROUND_Y = 430;
+    
+    function resizeCanvas() {
+        const container = canvas.parentElement;
+        canvas.width = container.clientWidth;
+        canvas.height = Math.min(window.innerHeight - 150, 500);
+        W = canvas.width;
+        H = canvas.height;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    
+    // ========== ÁUDIO ORIGINAL ==========
+    let audioContext = null, currentSongIndex = 0, songTimeout = null, musicGain = null, isPlaying = false, audioEnabled = false;
+    const tempo = 0.155;
+    
+    function noteFreq(note) {
+        const map = {"C":-9,"C#":-8,"D":-7,"D#":-6,"E":-5,"F":-4,"F#":-3,"G":-2,"G#":-1,"A":0,"A#":1,"B":2};
+        const pitch = note.slice(0,-1);
+        const octave = parseInt(note.slice(-1));
+        return 440 * Math.pow(2, (map[pitch] + (octave - 4) * 12) / 12);
+    }
+    
+    const fullSong = [
+        ["E5",1],["E5",1],["R",1],["E5",1],["R",1],["C5",1],["E5",1],
+        ["R",1],["G5",3],["R",3],["G4",3],["C5",2],["R",2],["G4",2],["R",2],
+        ["E4",2],["R",2],["A4",2],["B4",2],["A#4",1],["A4",2],["G4",1.5],
+        ["E5",1.5],["G5",1.5],["A5",2],["F5",1],["G5",1],["R",1],["E5",2],
+        ["C5",1],["D5",1],["B4",2],["C5",2],["R",2],["G4",2],["R",2],["E4",2],
+        ["R",2],["A4",2],["B4",2],["A#4",1],["A4",2],["G4",1.5],["E5",1.5],
+        ["G5",1.5],["A5",2],["F5",1],["G5",1],["R",1],["E5",2],["C5",1],["D5",1],
+        ["B4",2],["R",2],["G5",1],["F#5",1],["F5",1],["D#5",1],["E5",2],
+        ["G#4",1],["A4",1],["C5",1],["A4",1],["C5",1],["D5",2],["R",2],
+        ["G5",1],["F#5",1],["F5",1],["D#5",1],["E5",2],["C6",1],["C6",1],["C6",3],
+        ["R",2],["C5",1],["C5",1],["C5",1],["R",1],["C5",1],["D5",1],["E5",2],
+        ["C5",1],["D5",1],["E5",2],["C5",1],["D5",1],["E5",1],["F5",1],["G5",4],
+        ["R",2],["G5",1],["G5",1],["G5",1],["E5",1],["C5",1],["D5",1],["E5",3],
+        ["R",1],["C5",1],["D5",1],["B4",4],["R",2],["G5",1],["F#5",1],["F5",1],
+        ["D#5",1],["E5",2],["G#4",1],["A4",1],["C5",1],["A4",1],["C5",1],["D5",2],
+        ["D#5",2],["R",1],["D5",2],["C5",4],["R",2],["C5",1],["G4",1],["E4",2],
+        ["A4",1],["B4",1],["A#4",1],["A4",2],["G4",2],["E5",2],["G5",2],["A5",2],
+        ["F5",1],["G5",1],["E5",2],["C5",1],["D5",1],["B4",4],["R",2],["E5",1],
+        ["C5",1],["G4",2],["G4",1],["A4",1],["B4",2],["A4",1],["G4",1],["E4",3],
+        ["G4",1],["C5",1],["E5",2],["G5",3],["R",2],["C6",1],["G5",1],["E5",2],
+        ["A5",1],["B5",1],["C6",4],["R",2],["G5",1],["E5",1],["C5",4],
+        ["C5",2],["G4",2],["E4",8]
+    ];
+    
+    function initAudio() { if (audioContext) return; audioContext = new (window.AudioContext || window.webkitAudioContext)(); musicGain = audioContext.createGain(); musicGain.gain.value = 0.35; musicGain.connect(audioContext.destination); }
+    function playMusicNote(note, start, duration) { if (note === "R") return; const freq = noteFreq(note) * 0.65; const osc = audioContext.createOscillator(); const gain = audioContext.createGain(); osc.type = "square"; osc.frequency.value = freq; gain.gain.setValueAtTime(0.0001, start); gain.gain.exponentialRampToValueAtTime(0.25, start + 0.01); gain.gain.exponentialRampToValueAtTime(0.0001, start + duration); osc.connect(gain); gain.connect(musicGain); osc.start(start); osc.stop(start + duration); }
+    function playFullSong() { if (!audioContext || !isPlaying) return; if (currentSongIndex >= fullSong.length) currentSongIndex = 0; const [note, len] = fullSong[currentSongIndex]; playMusicNote(note, audioContext.currentTime, tempo * len); currentSongIndex++; songTimeout = setTimeout(playFullSong, tempo * len * 1000); }
+    function startMusic() { if (!audioContext) initAudio(); if (audioContext && audioContext.state === 'suspended') audioContext.resume(); if (isPlaying) return; isPlaying = true; currentSongIndex = 0; if (songTimeout) clearTimeout(songTimeout); playFullSong(); }
+    function playCoinSound() { if (!audioContext || !audioEnabled) return; const osc = audioContext.createOscillator(); const gain = audioContext.createGain(); osc.type = 'sine'; osc.frequency.value = 1046.50; gain.gain.value = 0.25; osc.connect(gain); gain.connect(audioContext.destination); osc.start(); gain.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.15); osc.stop(audioContext.currentTime + 0.15); }
+    function playTorchSound() { if (!audioContext || !audioEnabled) return; const osc = audioContext.createOscillator(); const gain = audioContext.createGain(); osc.type = 'sine'; osc.frequency.value = 600; gain.gain.value = 0.25; osc.connect(gain); gain.connect(audioContext.destination); osc.start(); gain.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.2); osc.stop(audioContext.currentTime + 0.2); }
+    function playDeathSound() { if (!audioContext || !audioEnabled) return; const osc = audioContext.createOscillator(); const gain = audioContext.createGain(); osc.type = 'sawtooth'; osc.frequency.value = 220; gain.gain.value = 0.35; osc.connect(gain); gain.connect(audioContext.destination); osc.start(); gain.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.4); osc.stop(audioContext.currentTime + 0.4); }
+    function playFlagSound() { if (!audioContext || !audioEnabled) return; [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => { setTimeout(() => { const osc = audioContext.createOscillator(); const gain = audioContext.createGain(); osc.type = 'square'; osc.frequency.value = f; gain.gain.value = 0.2; osc.connect(gain); gain.connect(audioContext.destination); osc.start(); gain.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.3); osc.stop(audioContext.currentTime + 0.3); }, i * 100); }); }
+    
+    function enableAudio() { if (audioEnabled) return; audioEnabled = true; initAudio(); startMusic(); }
+    document.body.addEventListener('click', enableAudio);
+    document.body.addEventListener('touchstart', enableAudio);
+    
+    // ========== ESTADO DO JOGO ==========
+    let currentPhase = 1;
+    let totalScore = 0;
+    let totalCoins = 0;
+    let globalLives = 33;
+    let phaseAttempts = 3;
+    let gameActive = true;
+    let phaseComplete = false;
+    let cameraX = 0;
+    let worldWidth = 12000;
+    let isRespawning = false;
+    let respawnTargetX = 0;
+    let isJumpingAnim = false;
+    let jumpAnimTimer = 0;
+    let phaseTransitionDelay = false;
+    
+    let player = {
+        x: 150, y: GROUND_Y - 38, w: 34, h: 38,
+        vx: 0, vy: 0, onGround: true, facingRight: true,
+        invincible: 0, legAnim: 0
+    };
+    
+    window.playerX = player.x;
+    window.playerY = player.y;
+    window.playerFacingRight = player.facingRight;
+    window.isMultiplayerActive = false;
+    window.otherPlayerGlobal = null;
+    
+    let torchesList = [];
+    let platforms = [];
+    let enemies = [];
+    let coins = [];
+    let birds = [];
+    let flagGuardian = null;
+    let giantMushroom = null;
+    
+    const GRAVITY = 0.68;
+    const JUMP = -10.3;
+    const ACC = 0.78;
+    const MAX_SPEED = 5.8;
+    const FRICTION = 0.92;
+    
+    let leftPressed = false, rightPressed = false, jumpPressed = false;
+    
+    function updateUI() {
+        document.getElementById('phaseText').innerHTML = `FASE ${currentPhase}/33`;
+        document.getElementById('scoreText').innerHTML = Math.floor(totalScore);
+        document.getElementById('coinText').innerHTML = totalCoins;
+        document.getElementById('globalLivesText').innerHTML = `💖 ${globalLives}`;
+        document.getElementById('chanceText').innerHTML = `🎲 ${phaseAttempts}/3`;
+    }
+    
+    function loseLife() {
+        playDeathSound();
+        if (phaseAttempts > 1) { phaseAttempts--; updateUI(); startRespawn(); }
+        else { phaseAttempts = 3; globalLives--; updateUI(); if (globalLives <= 0) { alert(`💀 GAME OVER!`); exitMultiplayer(); } else loadPhase(currentPhase); }
+    }
+    
+    function startRespawn() { 
+        isRespawning = true; 
+        respawnTargetX = player.x; 
+        player.invincible = 60; 
+        player.x = 100; 
+        player.vx = 12; 
+        player.vy = 0;
+    }
+    
+    function throwTorch() { 
+        playTorchSound(); 
+        torchesList.push({ 
+            x: player.x + (player.facingRight ? player.w + 5 : -20), 
+            y: player.y + player.h/2 - 8, 
+            vx: player.facingRight ? 8 : -8, 
+            vy: -3, 
+            width: 12, 
+            height: 12 
+        }); 
+    }
+    
+    function updateTorches() {
+        for (let i = 0; i < torchesList.length; i++) {
+            const t = torchesList[i];
+            t.x += t.vx; t.y += t.vy; t.vy += 0.3;
+            if (t.y > H + 50 || t.x < -100 || t.x > worldWidth + 100) { torchesList.splice(i, 1); i--; continue; }
+            if (flagGuardian && flagGuardian.active && t.x < flagGuardian.x + flagGuardian.w && t.x + t.width > flagGuardian.x && t.y < flagGuardian.y + flagGuardian.h && t.y + t.height > flagGuardian.y) {
+                flagGuardian.hits++; playTorchSound(); torchesList.splice(i, 1); i--;
+                if (flagGuardian.hits >= 50) { flagGuardian.active = false; totalScore += 1000; updateUI(); }
+                continue;
+            }
+            for (let j = 0; j < enemies.length; j++) { if (enemies[j].alive && t.x < enemies[j].x + 32 && t.x + t.width > enemies[j].x && t.y < enemies[j].y + 32 && t.y + t.height > enemies[j].y) { enemies[j].alive = false; totalScore += 50; updateUI(); torchesList.splice(i, 1); i--; break; } }
+        }
+    }
+    
+    function buildPhase(phase) {
+        worldWidth = 10000 + (phase * 1000);
+        const baseY = GROUND_Y;
+        flagGuardian = { x: worldWidth - 200, y: baseY - 95, w: 85, h: 95, active: true, hits: 0, direction: -1, moveTimer: 0 };
+        if (phase >= 8) giantMushroom = { x: worldWidth - 500, y: baseY - 65, w: 40, h: 40, collected: false };
+        platforms = [{ x: 0, y: baseY, w: worldWidth, h: 18 }];
+        for (let i = 0; i < 15 + phase; i++) { let px = 300 + (i * 380) + (phase * 15); let py = baseY - 45 - (i % 5) * 35; if (px < worldWidth - 200) { platforms.push({ x: px, y: py, w: 75, h: 24 }); if (phase > 10 && i % 3 === 0) platforms.push({ x: px + 65, y: py - 45, w: 65, h: 24 }); } }
+        
+        enemies = [];
+        for (let i = 0; i < 12 + Math.floor(phase * 1.5); i++) { 
+            let ex = 250 + (i * 350) + (phase * 30);
+            if (ex < worldWidth - 300) {
+                enemies.push({ 
+                    x: ex, y: baseY - 34, w: 32, h: 32, 
+                    alive: true, type: i % 4, walkDir: i % 2 === 0 ? 1 : -1, 
+                    frame: 0 
+                });
+            }
+        }
+        for (let i = 0; i < platforms.length; i++) {
+            if (platforms[i].y < baseY - 30 && Math.random() > 0.6) {
+                enemies.push({ 
+                    x: platforms[i].x + 20, y: platforms[i].y - 32, w: 32, h: 32, 
+                    alive: true, type: Math.floor(Math.random() * 4), walkDir: Math.random() > 0.5 ? 1 : -1, 
+                    frame: 0 
+                });
+            }
+        }
+        
+        coins = [];
+        for (let i = 0; i < 200; i++) { let cx = 120 + (i * 40) % (worldWidth - 200); let cy = baseY - 48; if (i % 4 === 0) cy = baseY - 75; if (i % 6 === 0) cy = baseY - 100; coins.push({ x: cx, y: cy, w: 14, h: 14, collected: false }); }
+        
+        birds = [];
+        for (let i = 0; i < 10; i++) birds.push({ x: Math.random() * (worldWidth + 500), y: 40 + Math.random() * 100, speed: 0.5 + Math.random() * 0.7, wing: Math.random() * Math.PI * 2, size: 4 + Math.random() * 4 });
+    }
+    
+    function drawFlagGuardian() {
+        if (!flagGuardian || !flagGuardian.active) return;
+        let dx = flagGuardian.x - cameraX;
+        if (dx + 85 < -50 || dx > W + 50) return;
+        ctx.fillStyle = "#8B0000"; ctx.fillRect(dx, flagGuardian.y, 85, 95);
+        ctx.fillStyle = "#AA0000"; ctx.fillRect(dx + 10, flagGuardian.y + 15, 65, 60);
+        ctx.fillStyle = "#660000"; ctx.beginPath(); ctx.ellipse(dx + 42, flagGuardian.y + 45, 30, 35, 0, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = "#FF0000"; ctx.beginPath(); ctx.arc(dx + 25, flagGuardian.y + 40, 10, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(dx + 60, flagGuardian.y + 40, 10, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(dx + 23, flagGuardian.y + 38, 4, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(dx + 58, flagGuardian.y + 38, 4, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = "#FF0000"; ctx.fillRect(dx + 10, flagGuardian.y - 15, 65, 8);
+        ctx.fillStyle = "#00FF00"; let life = (50 - flagGuardian.hits) / 50; ctx.fillRect(dx + 10, flagGuardian.y - 15, 65 * Math.max(0, life), 8);
+        ctx.fillStyle = "#FFF"; ctx.font = "bold 9px monospace"; ctx.fillText(`💪 ${50 - flagGuardian.hits}`, dx + 25, flagGuardian.y - 17);
+    }
+    
+    function updateFlagGuardian() {
+        if (!flagGuardian || !flagGuardian.active) return;
+        flagGuardian.moveTimer++; if (flagGuardian.moveTimer > 50) { flagGuardian.direction *= -1; flagGuardian.moveTimer = 0; }
+        flagGuardian.x += flagGuardian.direction * 0.7;
+        flagGuardian.x = Math.max(worldWidth - 280, Math.min(worldWidth - 130, flagGuardian.x));
+        if (player.x < flagGuardian.x + 85 && player.x + player.w > flagGuardian.x && player.y < flagGuardian.y + 95 && player.y + player.h > flagGuardian.y) { if (player.invincible <= 0 && !isRespawning) loseLife(); }
+    }
+    
+    function handleCollisions(entity) {
+        let grounded = false;
+        for (let plat of platforms) { if (entity.x + entity.w > plat.x && entity.x < plat.x + plat.w && entity.y + entity.h <= plat.y + 12 && entity.y + entity.h + entity.vy >= plat.y) { entity.y = plat.y - entity.h; entity.vy = 0; grounded = true; break; } }
+        entity.onGround = grounded;
+        if (entity.y + entity.h >= GROUND_Y && !grounded) { entity.y = GROUND_Y - entity.h; entity.vy = 0; entity.onGround = true; }
+    }
+    
+    function handleEnemies() {
+        if (isRespawning) return;
+        for (let e of enemies) {
+            if (!e.alive) continue;
+            if (e.type === 2 || e.type === 3) { e.x += e.walkDir * 0.9; if (e.x < 50 || e.x > worldWidth - 80) e.walkDir *= -1; }
+            if (e.type === 1) e.frame += 0.08;
+            if (player.x < e.x + 32 && player.x + player.w > e.x && player.y < e.y + 32 && player.y + player.h > e.y) { if (player.vy > 0 && player.y + player.h - player.vy <= e.y + 10) { e.alive = false; totalScore += 100; updateUI(); player.vy = -8; } else if (player.invincible <= 0) { loseLife(); break; } }
+        }
+    }
+    
+    function collectCoins() {
+        for (let c of coins) { if (!c.collected && player.x < c.x + 14 && player.x + player.w > c.x && player.y < c.y + 14 && player.y + player.h > c.y) { c.collected = true; totalCoins++; totalScore += 25; playCoinSound(); updateUI(); } }
+    }
+    
+    function checkPhaseComplete() {
+        if (!phaseComplete && !isRespawning && gameActive && !phaseTransitionDelay) {
+            if (flagGuardian && flagGuardian.active) return;
+            if (player.x + player.w > worldWidth - 80) { phaseComplete = true; gameActive = false; phaseTransitionDelay = true; playFlagSound(); setTimeout(() => { if (currentPhase < 33) { currentPhase++; phaseAttempts = 3; loadPhase(currentPhase); gameActive = true; phaseComplete = false; phaseTransitionDelay = false; } else { alert(`🏆 PARABÉNS! VOCÊ ZEROU O JOGO! 🏆`); exitMultiplayer(); } }, 500); }
+        }
+    }
+    
+    function loadPhase(phase) { currentPhase = phase; buildPhase(phase); player = { x: 150, y: GROUND_Y - 38, w: 34, h: 38, vx: 0, vy: 0, onGround: true, facingRight: true, invincible: 0, legAnim: 0 }; cameraX = 0; gameActive = true; phaseComplete = false; isRespawning = false; torchesList = []; updateUI(); }
+    
+    function updateGame() {
+        if (!gameActive || phaseComplete) return;
+        if (isRespawning) {
+            player.x += player.vx; 
+            if (player.x >= respawnTargetX) { 
+                player.x = respawnTargetX; 
+                player.vx = 0; 
+                isRespawning = false; 
+                player.invincible = 40;
+            }
+            player.vy += GRAVITY; 
+            player.y += player.vy; 
+            if (player.y + player.h >= GROUND_Y) { player.y = GROUND_Y - player.h; player.vy = 0; }
+            let targetCam = player.x + player.w/2 - W/3.5; 
+            targetCam = Math.max(0, Math.min(targetCam, worldWidth - W)); 
+            cameraX = cameraX * 0.92 + targetCam * 0.08;
+            return;
+        }
+        for (let b of birds) { b.x += b.speed; if (b.x > worldWidth + 200) b.x = -100; b.wing += 0.15; }
+        updateTorches(); updateFlagGuardian();
+        if (jumpPressed && player.onGround) { player.vy = JUMP; player.onGround = false; jumpPressed = false; isJumpingAnim = true; jumpAnimTimer = 8; }
+        if (leftPressed) { player.vx = Math.max(-MAX_SPEED, player.vx - ACC); player.facingRight = false; player.legAnim += 0.3; }
+        if (rightPressed) { player.vx = Math.min(MAX_SPEED, player.vx + ACC); player.facingRight = true; player.legAnim += 0.3; }
+        if (!leftPressed && !rightPressed) player.vx *= FRICTION;
+        player.x += player.vx; player.vy += GRAVITY; player.y += player.vy; player.x = Math.max(50, Math.min(player.x, worldWidth - player.w - 50));
+        handleCollisions(player);
+        if (giantMushroom && !giantMushroom.collected && player.x < giantMushroom.x + 40 && player.x + player.w > giantMushroom.x && player.y < giantMushroom.y + 40 && player.y + player.h > giantMushroom.y) { giantMushroom.collected = true; totalScore += 500; updateUI(); }
+        if (player.y + player.h > H + 100) loseLife();
+        handleEnemies(); collectCoins(); checkPhaseComplete();
+        if (player.invincible > 0) player.invincible--;
+        let targetCam = player.x + player.w/2 - W/3.5; targetCam = Math.max(0, Math.min(targetCam, worldWidth - W)); cameraX = cameraX * 0.92 + targetCam * 0.08;
+        if (jumpAnimTimer > 0) jumpAnimTimer--;
+        
+        window.playerX = player.x; window.playerY = player.y; window.playerFacingRight = player.facingRight;
+        if (window.isMultiplayerActive && myPosRef && !isRespawning) { myPosRef.set({ x: player.x, y: player.y, facingRight: player.facingRight }); }
+    }
+    
+    function drawRemotePlayer() {
+        if (!window.isMultiplayerActive || !window.otherPlayerGlobal) return;
+        let x = remotePlayerData.x - cameraX;
+        let y = remotePlayerData.y;
+        if (x + 34 < 0 || x > W) return;
+        ctx.fillStyle = "#44aaff"; ctx.fillRect(x, y, 34, 38);
+        ctx.fillStyle = "#fec280"; ctx.fillRect(x + 6, y + 6, 22, 14);
+        ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(x + 12, y + 12, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(x + 11, y + 11, 1.2, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#1a1a1a"; ctx.fillRect(x + 20, y + 8, 14, 10);
+        ctx.fillStyle = "#c9a84c"; ctx.fillRect(x + 22, y + 10, 10, 6);
+        ctx.beginPath(); ctx.arc(x + 18, y + 20, 4, 0, Math.PI); ctx.fillStyle = "#cc6644"; ctx.fill();
+        ctx.fillStyle = "#ff1493"; ctx.fillRect(x + 4, y - 6, 28, 10);
+        ctx.fillStyle = "#ffb6c1"; ctx.fillRect(x + 5, y + 25, 26, 14);
+        ctx.fillStyle = "#ffd700"; ctx.fillRect(x + 11, y - 13, 14, 8);
+        for(let i = 0; i < 5; i++) ctx.fillRect(x + 12 + i*3, y - 17, 2, 6);
+        ctx.fillStyle = "#fff"; ctx.font = "bold 9px monospace"; ctx.fillText(window.otherPlayerGlobal, x + 5, y - 5);
+    }
+    
+    function drawSkyBackground() {
+        const grad = ctx.createLinearGradient(0, 0, 0, H);
+        grad.addColorStop(0, "#87CEEB");
+        grad.addColorStop(1, "#4A90D9");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, H);
+        
+        ctx.fillStyle = "#ffe066";
+        ctx.beginPath();
+        ctx.ellipse(W - 80, 70, 45, 45, 0, 0, Math.PI*2);
+        ctx.fill();
+        
+        ctx.fillStyle = "#5a8e3a";
+        for (let i = 0; i < 5; i++) { let mx = (i * 320) - (cameraX * 0.1) % 900; ctx.beginPath(); ctx.moveTo(mx, GROUND_Y - 40); ctx.lineTo(mx + 80, GROUND_Y - 160); ctx.lineTo(mx + 160, GROUND_Y - 40); ctx.fill(); }
+        
+        ctx.fillStyle = "#3a6a1a";
+        ctx.fillRect(0, GROUND_Y - 12, W, 18);
+        
+        for (let plat of platforms) { let dx = plat.x - cameraX; if (dx + plat.w < 0 || dx > W) continue; ctx.fillStyle = "#8b6946"; ctx.fillRect(dx, plat.y, plat.w, plat.h); ctx.fillStyle = "#5d3f20"; ctx.fillRect(dx, plat.y + 3, plat.w, 4); }
+        
+        for (let c of coins) { if (c.collected) continue; let dx = c.x - cameraX; if (dx + 14 < 0 || dx > W) continue; ctx.fillStyle = "#ffdd55"; ctx.beginPath(); ctx.ellipse(dx + 7, c.y + 7, 7, 9, 0, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = "#e6b800"; ctx.fillRect(dx + 3, c.y + 5, 8, 4); }
+        
+        for (let e of enemies) { if (!e.alive) continue; let dx = e.x - cameraX; if (dx + 32 < 0 || dx > W) continue; ctx.fillStyle = "#8b5a2b"; ctx.fillRect(dx, e.y, 32, 32); ctx.fillStyle = "#593a18"; ctx.fillRect(dx + 6, e.y + 12, 7, 8); ctx.fillRect(dx + 19, e.y + 12, 7, 8); ctx.fillStyle = "#000"; ctx.fillRect(dx + 9, e.y + 8, 4, 5); ctx.fillRect(dx + 20, e.y + 8, 4, 5); }
+        
+        for (let b of birds) { let dx = b.x - cameraX; if (dx < -50 || dx > W + 50) continue; ctx.fillStyle = "#444"; ctx.beginPath(); ctx.ellipse(dx, b.y, b.size, b.size/1.5, 0, 0, Math.PI*2); ctx.fill(); const wingY = Math.sin(b.wing) > 0 ? -4 : 3; ctx.fillStyle = "#666"; ctx.beginPath(); ctx.moveTo(dx - b.size, b.y); ctx.lineTo(dx - b.size - 5, b.y + wingY); ctx.lineTo(dx - b.size, b.y + 1); ctx.fill(); ctx.beginPath(); ctx.moveTo(dx + b.size, b.y); ctx.lineTo(dx + b.size + 5, b.y + wingY); ctx.lineTo(dx + b.size, b.y + 1); ctx.fill(); ctx.fillStyle = "#fff"; ctx.fillRect(dx + b.size/2, b.y - 2, 2, 2); }
+        
+        let fx = worldWidth - 100 - cameraX;
+        if (fx + 40 > 0 && fx < W) { ctx.fillStyle = "#b87a3a"; ctx.fillRect(fx, GROUND_Y - 130, 8, 130); ctx.fillStyle = "#ff5533"; ctx.beginPath(); ctx.moveTo(fx + 6, GROUND_Y - 130); ctx.lineTo(fx + 55, GROUND_Y - 108); ctx.lineTo(fx + 6, GROUND_Y - 86); ctx.fill(); ctx.fillStyle = "#ffdd99"; ctx.font = "bold 18px monospace"; ctx.fillText("🏁", fx + 20, GROUND_Y - 145); }
+        
+        if (giantMushroom && !giantMushroom.collected) { let dx = giantMushroom.x - cameraX; if (dx + 40 > 0 && dx < W) { ctx.fillStyle = "#ff4444"; ctx.fillRect(dx, giantMushroom.y, 40, 40); ctx.fillStyle = "#ffffff"; ctx.fillRect(dx + 8, giantMushroom.y + 8, 24, 24); ctx.fillStyle = "#ff0000"; ctx.fillRect(dx + 12, giantMushroom.y + 18, 16, 10); ctx.fillStyle = "#ffff00"; ctx.font = "bold 14px monospace"; ctx.fillText("+500", dx + 8, giantMushroom.y - 5); } }
+        
+        drawFlagGuardian();
+        
+        for (let t of torchesList) { let dx = t.x - cameraX; if (dx + 12 < -50 || dx > W + 50) continue; ctx.fillStyle = "#ff6600"; ctx.fillRect(dx, t.y, t.width, t.height); ctx.fillStyle = "#ffcc00"; ctx.beginPath(); ctx.moveTo(dx + 6, t.y - 5); ctx.lineTo(dx + 12, t.y); ctx.lineTo(dx, t.y); ctx.fill(); }
+    }
+    
+    function drawPlayerCharacter() {
+        if (player.invincible > 0 && (Math.floor(Date.now() / 60) % 3 === 0)) return;
+        let x = player.x - cameraX;
+        let y = player.y;
+        if (x + 34 < 0 || x > W) return;
+        ctx.fillStyle = "#ff69b4"; ctx.fillRect(x, y, 34, 38);
+        ctx.fillStyle = "#fec280"; ctx.fillRect(x + 6, y + 6, 22, 14);
+        ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(x + 12, y + 12, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(x + 11, y + 11, 1.2, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#1a1a1a"; ctx.fillRect(x + 20, y + 8, 14, 10);
+        ctx.fillStyle = "#c9a84c"; ctx.fillRect(x + 22, y + 10, 10, 6);
+        ctx.beginPath(); ctx.arc(x + 18, y + 19, 4, 0, Math.PI); ctx.fillStyle = "#cc6644"; ctx.fill();
+        ctx.fillStyle = "#5a2e0a"; ctx.fillRect(x + 8, y + 7, 7, 2);
+        ctx.fillStyle = "#ff1493"; ctx.fillRect(x + 4, y - 5, 28, 9);
+        ctx.fillStyle = "#fff"; ctx.fillRect(x + 18, y - 3, 8, 5);
+        ctx.fillStyle = "#ffb6c1"; ctx.fillRect(x + 5, y + 24, 26, 12);
+        const legMove = Math.sin(player.legAnim) * 5;
+        ctx.fillStyle = "#ffb6c1"; ctx.fillRect(x + 5, y + 32, 7, 7 + (player.onGround ? legMove : 2)); ctx.fillRect(x + 22, y + 32, 7, 7 - (player.onGround ? legMove : 2));
+        if (isJumpingAnim || !player.onGround) { ctx.fillStyle = "#fec280"; ctx.fillRect(x + 26, y + 8, 6, 8); ctx.fillRect(x + 28, y + 6, 4, 4); }
+        ctx.fillStyle = "#ffd700"; ctx.fillRect(x + 11, y - 12, 14, 8);
+        for(let i = 0; i < 5; i++) ctx.fillRect(x + 12 + i*3, y - 16, 2, 6);
+        ctx.fillStyle = "#ff4444"; ctx.fillRect(x + 14, y - 14, 3, 3);
+        ctx.fillStyle = "#44ff44"; ctx.fillRect(x + 20, y - 14, 3, 3);
+        ctx.fillStyle = "#4444ff"; ctx.fillRect(x + 26, y - 14, 3, 3);
+        ctx.fillStyle = "#ff00ff"; ctx.fillRect(x + 17, y - 17, 4, 5);
+        let playerName = document.getElementById('playerName').value.trim() || "Jogador";
+        ctx.fillStyle = "#fff"; ctx.font = "bold 9px monospace"; ctx.fillText(playerName, x + 5, y - 5);
+    }
+    
+    function render() { 
+        drawSkyBackground(); 
+        drawRemotePlayer(); 
+        drawPlayerCharacter(); 
+        ctx.fillStyle = "rgba(0,0,0,0.6)"; 
+        ctx.fillRect(10, 10, 200, 25); 
+        ctx.fillStyle = "#fff"; 
+        ctx.font = "bold 10px monospace"; 
+        ctx.fillText("⭐ PRINCESA EMANUELLY ⭐", 15, 28); 
+    }
+    
+    function gameLoop() { 
+        updateGame(); 
+        render(); 
+        requestAnimationFrame(gameLoop); 
+    }
+    
+    // BOTÕES
+    document.getElementById('leftBtn').addEventListener('mousedown', (e) => { e.preventDefault(); leftPressed = true; });
+    document.getElementById('leftBtn').addEventListener('mouseup', () => leftPressed = false);
+    document.getElementById('leftBtn').addEventListener('touchstart', (e) => { e.preventDefault(); leftPressed = true; });
+    document.getElementById('leftBtn').addEventListener('touchend', () => leftPressed = false);
+    
+    document.getElementById('rightBtn').addEventListener('mousedown', (e) => { e.preventDefault(); rightPressed = true; });
+    document.getElementById('rightBtn').addEventListener('mouseup', () => rightPressed = false);
+    document.getElementById('rightBtn').addEventListener('touchstart', (e) => { e.preventDefault(); rightPressed = true; });
+    document.getElementById('rightBtn').addEventListener('touchend', () => rightPressed = false);
+    
+    document.getElementById('jumpBtn').addEventListener('mousedown', (e) => { e.preventDefault(); jumpPressed = true; });
+    document.getElementById('jumpBtn').addEventListener('touchstart', (e) => { e.preventDefault(); jumpPressed = true; });
+    
+    document.getElementById('torchBtn').addEventListener('click', (e) => { e.preventDefault(); throwTorch(); });
+    document.getElementById('torchBtn').addEventListener('touchstart', (e) => { e.preventDefault(); throwTorch(); });
+    
+    window.addEventListener('keydown', (e) => { if (e.key === 'ArrowLeft') { leftPressed = true; e.preventDefault(); } if (e.key === 'ArrowRight') { rightPressed = true; e.preventDefault(); } if (e.key === 'ArrowUp') { jumpPressed = true; e.preventDefault(); } if (e.key === 't') { throwTorch(); e.preventDefault(); } });
+    window.addEventListener('keyup', (e) => { if (e.key === 'ArrowLeft') leftPressed = false; if (e.key === 'ArrowRight') rightPressed = false; if (e.key === 'ArrowUp') jumpPressed = false; });
+    
+    loadPhase(1);
+    gameLoop();
+    document.getElementById('gameContainer').style.display = 'none';
+    document.getElementById('startScreen').style.display = 'flex';
+})();
+
+// EVENTOS DAS TELAS
+document.getElementById('copyCodeBtn').onclick = () => { const c = document.getElementById('myCode').innerText; if (c) navigator.clipboard.writeText(c); showNotif('✅ Código copiado!'); };
+document.getElementById('createRoomBtn').onclick = () => createMultiplayerRoom();
+document.getElementById('joinRoomBtn').onclick = () => { document.getElementById('startScreen').style.display = 'none'; document.getElementById('joinCodeScreen').style.display = 'flex'; };
+document.getElementById('soloBtn').onclick = () => { const name = document.getElementById('playerName').value.trim(); if (!name) { showNotif('❌ Digite seu nome!', '#ff4444'); return; } document.getElementById('startScreen').style.display = 'none'; document.getElementById('gameContainer').style.display = 'flex'; document.getElementById('exitGameBtn').style.display = 'block'; };
+document.getElementById('confirmJoinBtn').onclick = () => { const code = document.getElementById('roomCodeInput').value.trim(); if (code.length !== 6) { showNotif('❌ Código de 6 dígitos!', '#ff4444'); return; } joinMultiplayerRoom(code); };
+document.getElementById('cancelJoinBtn').onclick = () => { document.getElementById('joinCodeScreen').style.display = 'none'; document.getElementById('startScreen').style.display = 'flex'; };
+document.getElementById('cancelRoomBtn').onclick = () => exitMultiplayer();
+document.getElementById('exitGameBtn').onclick = () => exitMultiplayer();
+document.getElementById('acceptRequestBtn').onclick = () => { document.getElementById('friendRequestPopup').style.display = 'none'; startMultiplayerGame(); };
+document.getElementById('rejectRequestBtn').onclick = () => { document.getElementById('friendRequestPopup').style.display = 'none'; showNotif('❌ Convite recusado', '#ff4444'); };
+
+document.getElementById('myCode').innerHTML = Math.floor(100000 + Math.random() * 900000).toString();
+</script>
+</body>
+</html>
