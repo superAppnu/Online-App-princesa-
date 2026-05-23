@@ -56,7 +56,7 @@
 
 <div id="startScreen" class="screen">
     <div class="card">
-        <h1>👑 PRINCESA EMANUELLY 👑</h1>
+        <h1>👑 mw A👑</h1>
         <input type="text" id="playerName" placeholder="Seu nome" maxlength="15" value="Princesa">
         <div class="code-box"><span id="myCode">------</span></div>
         <button id="copyCodeBtn" class="btn-orange">📋 COPIAR</button>
@@ -101,7 +101,7 @@
 
 <button id="exitGameBtn" class="exit-btn">🚪 SAIR</button>
 
-<div class="game-container" id="gameContainer">
+<div class="game-container" id="gameContainer" style="display: none;">
     <canvas id="gameCanvas" width="1000" height="500"></canvas>
     <div class="info-panel">
         <span class="game-title">⭐ PRINCESA EMANUELLY ⭐</span>
@@ -121,6 +121,7 @@
 </div>
 
 <script>
+    <div class="game-container" id="gameContainer" style="display: none;">
 const firebaseConfig = {
   apiKey: "AIzaSyAeRybVgZFjj6LhbPgYsVqpdl0eOIfVY5U",
   authDomain: "online-app-e95f6.firebaseapp.com",
