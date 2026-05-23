@@ -146,6 +146,17 @@ try {
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     db = firebase.database();
     document.getElementById('connectionStatus').innerHTML = "✅ Firebase OK";
+    firebase.auth().onAuthStateChanged((user) => {
+    if (user) {
+        console.log("Usuário logado! O jogo vai carregar agora.");
+        // Se o seu jogo tiver uma função para começar, chame ela aqui, ex:
+        // iniciarJogo(); 
+    } else {
+        console.log("Nenhum usuário logado. Indo para o login...");
+        // Altere 'login.html' para o nome exato da sua página de login
+        window.location.href = "login.html"; 
+    }
+});
 } catch(e) {
     document.getElementById('connectionStatus').innerHTML = "⚠️ Configure o Firebase";
 }
