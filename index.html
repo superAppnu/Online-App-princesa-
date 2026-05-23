@@ -3,264 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Princesa Emanuelly - 33 Fases</title>
+    <title>Princesa Emanuelly - 33 Fases Cósmicas</title>
     
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        body {
-            background: #000;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-family: 'Courier New', monospace;
-            overflow: hidden;
-            position: fixed;
-            width: 100%;
-            height: 100%;
-        }
-
-        .screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, #0a0a2a, #1a0a3a);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 200;
-        }
-
-        .card {
-            background: rgba(0,0,0,0.9);
-            border-radius: 50px;
-            padding: 35px 30px;
-            text-align: center;
-            border: 3px solid #ff69b4;
-            width: 90%;
-            max-width: 400px;
-            box-shadow: 0 0 30px rgba(255,105,180,0.3);
-        }
-
-        .card h1 { color: #ff69b4; margin-bottom: 20px; font-size: 22px; }
-        .card input {
-            width: 85%;
-            padding: 14px;
-            margin: 10px;
-            border-radius: 40px;
-            border: none;
-            font-size: 14px;
-            text-align: center;
-            background: #222;
-            color: white;
-            border: 1px solid #ff69b4;
-        }
-        .card button {
-            border: none;
-            padding: 12px 25px;
-            margin: 8px;
-            border-radius: 40px;
-            font-size: 14px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: transform 0.2s;
-        }
-        .card button:active { transform: scale(0.97); }
-        .btn-orange { background: #ff8800; color: white; }
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+        body { background: #000; width: 100%; height: 100%; overflow: hidden; font-family: 'Courier New', monospace; }
+        
+        .screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #1a0b2e, #4a154b); display: flex; justify-content: center; align-items: center; z-index: 200; }
+        .card { background: rgba(0,0,0,0.85); border-radius: 50px; padding: 30px; text-align: center; border: 3px solid #ff69b4; width: 90%; max-width: 380px; box-shadow: 0 0 30px rgba(255, 105, 180, 0.4); }
+        .card h1 { color: #ff69b4; font-size: 28px; margin-bottom: 20px; text-shadow: 0 0 10px #ff69b4; }
+        .card input { width: 90%; padding: 15px; margin: 10px 0; border-radius: 50px; border: none; font-size: 16px; text-align: center; background: #fff; }
+        .card button { border: none; padding: 12px 20px; margin: 8px; border-radius: 50px; font-size: 16px; font-weight: bold; cursor: pointer; transition: transform 0.1s; }
+        .card button:active { transform: scale(0.95); }
         .btn-green { background: #44ff44; color: #000; }
-        .btn-yellow { background: #ffaa33; color: #000; }
-        .btn-red { background: #ff4444; color: white; }
+        .btn-yellow { background: #ffcc00; color: #886600; }
         .btn-blue { background: #4488ff; color: white; }
-
+        .btn-red { background: #ff4444; color: white; }
+        .btn-orange { background: #ff8800; color: white; }
+        
         .code-box { background: #111; padding: 15px; border-radius: 30px; margin: 15px 0; border: 1px solid #ff69b4; }
         .code-box span { color: #ff69b4; font-size: 32px; font-weight: bold; letter-spacing: 5px; }
-
         .waiting-status { background: #1a1a2a; padding: 12px; border-radius: 30px; margin: 15px 0; color: #ffcc44; font-size: 13px; }
-
-        .notification {
-            position: fixed;
-            top: 80px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #44ff44;
-            color: #000;
-            padding: 12px 24px;
-            border-radius: 40px;
-            font-weight: bold;
-            z-index: 300;
-            display: none;
-            font-size: 14px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.3);
-        }
-
-        .game-container {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            background: #0a0a1a;
-            justify-content: space-between;
-        }
-
-        canvas {
-            display: block;
-            width: 100%;
-            flex: 1;
-            min-height: 0;
-            background: #87CEEB;
-            cursor: pointer;
-        }
-
-        .info-panel {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #000;
-            padding: 8px 15px;
-            color: #ffefb9;
-            font-weight: bold;
-            font-size: 11px;
-            font-family: monospace;
-            flex-wrap: wrap;
-            gap: 5px;
-            border-bottom: 2px solid #ff69b4;
-        }
-
-        .game-title { background: #000; color: #ffffff; padding: 4px 12px; border-radius: 30px; font-size: 11px; font-weight: bold; border: 1px solid #ff69b4; }
-        .phase-badge, .chance-badge, .lives-badge { padding: 3px 10px; border-radius: 25px; font-size: 10px; }
-        .phase-badge { background: #ff69b4; color: #fff; }
-        .chance-badge { background: #ffaa33; color: #2a1a00; }
-        .lives-badge { background: #ff4444; color: #fff; }
-
-        .touch-controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 15px;
-            background: rgba(0,0,0,0.85);
-            gap: 15px;
-        }
-
-        .dpad { display: flex; gap: 20px; }
-        .right-actions { display: flex; gap: 12px; align-items: center; }
-
-        .btn {
-            width: 65px;
-            height: 65px;
-            border-radius: 60px;
-            font-size: 28px;
-            font-weight: bold;
-            border: none;
-            cursor: pointer;
-            box-shadow: 0 3px 0 rgba(0,0,0,0.3);
-        }
-        .btn:active { transform: translateY(2px); }
-
-        .btn-left, .btn-right { background: radial-gradient(#f5b062, #c26a22); color: #2d1c08; }
-        .btn-jump { background: radial-gradient(#e55a3a, #aa2a1a); color: white; width: 75px; font-size: 24px; }
-        .btn-torch { background: radial-gradient(#ff6600, #cc4400); color: white; width: 75px; font-size: 20px; }
-
-        @media (max-width: 600px) {
-            .btn { width: 55px; height: 55px; font-size: 24px; }
-            .btn-jump, .btn-torch { width: 65px; font-size: 20px; }
-            .card { padding: 25px 20px; }
-        }
-
-        .controls-footer { text-align: center; padding: 6px; color: #e6c88a; font-size: 9px; background: rgba(0,0,0,0.5); }
-
-        .exit-btn {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            background: #ff4444;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 30px;
-            font-size: 12px;
-            font-weight: bold;
-            cursor: pointer;
-            z-index: 150;
-            display: none;
-        }
-
-        .connection-status {
-            position: fixed;
-            bottom: 10px;
-            left: 10px;
-            background: rgba(0,0,0,0.7);
-            color: #0f0;
-            padding: 4px 8px;
-            border-radius: 20px;
-            font-size: 10px;
-            z-index: 150;
-        }
-
-        .friend-request {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: linear-gradient(135deg, #1a1a2a, #2a2a3a);
-            border: 3px solid #ff69b4;
-            border-radius: 50px;
-            padding: 30px 40px;
-            text-align: center;
-            z-index: 350;
-            display: none;
-            min-width: 320px;
-        }
-        .friend-request p { color: white; font-size: 18px; margin-bottom: 20px; }
-        .friend-request .request-name { color: #ff69b4; font-size: 24px; font-weight: bold; }
-        .friend-request button { padding: 12px 25px; margin: 10px; border-radius: 40px; border: none; cursor: pointer; font-weight: bold; font-size: 14px; }
-        .accept-btn { background: #44ff44; color: #000; }
-        .reject-btn { background: #ff4444; color: #fff; }
         
-        .save-friend-notification {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: linear-gradient(135deg, #1a1a2a, #2a2a3a);
-            border: 3px solid #ff69b4;
-            border-radius: 50px;
-            padding: 30px 40px;
-            text-align: center;
-            z-index: 350;
-            display: none;
-            min-width: 320px;
-        }
-        .save-friend-notification p { color: white; font-size: 18px; margin-bottom: 20px; }
-        .save-friend-notification .friend-name { color: #ff69b4; font-size: 24px; font-weight: bold; }
-        .save-friend-notification button { padding: 12px 25px; margin: 10px; border-radius: 40px; border: none; cursor: pointer; font-weight: bold; font-size: 14px; }
-        .save-yes { background: #44ff44; color: #000; }
-        .save-no { background: #ff4444; color: #fff; }
+        .game-container { width: 100%; height: 100%; display: flex; flex-direction: column; background: #020208; position: fixed; top: 0; left: 0; display: none; }
+        canvas { display: block; width: 100%; flex: 1; background: #000; }
+        .info-panel { display: flex; justify-content: space-between; background: #000; padding: 8px 15px; color: #ffefb9; font-size: 11px; flex-wrap: wrap; gap: 5px; border-bottom: 2px solid #ff69b4; }
+        .info-panel span { background: #111; padding: 3px 10px; border-radius: 20px; border: 1px solid rgba(255, 105, 180, 0.3); }
+        .touch-controls { display: flex; justify-content: center; gap: 20px; padding: 12px; background: #000; border-top: 2px solid #ff69b4; }
+        .btn { width: 70px; height: 70px; border-radius: 60px; font-size: 32px; border: none; cursor: pointer; box-shadow: 0 4px 0 rgba(0,0,0,0.3); }
+        .btn:active { transform: translateY(2px); }
+        .btn-left, .btn-right { background: radial-gradient(#ffcc77, #ffaa33); color: #6b3a00; }
+        .btn-jump { background: radial-gradient(#ff88aa, #ff4466); color: white; width: 80px; }
+        .btn-torch { background: radial-gradient(#ffaa66, #ff6600); color: white; width: 80px; font-size: 26px; }
+        @media (max-width: 550px) { .btn { width: 55px; height: 55px; font-size: 24px; } .btn-jump, .btn-torch { width: 65px; font-size: 20px; } }
+        .controls-footer { text-align: center; padding: 6px; color: #e6c88a; font-size: 10px; background: rgba(0,0,0,0.5); }
+        .exit-btn { position: fixed; top: 10px; right: 10px; background: #ff4444; color: white; border: none; padding: 8px 16px; border-radius: 30px; z-index: 150; display: none; cursor: pointer; }
+        .connection-status { position: fixed; bottom: 10px; left: 10px; background: rgba(0,0,0,0.7); color: #0f0; padding: 4px 8px; border-radius: 20px; font-size: 10px; z-index: 150; }
+        .friend-request { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: linear-gradient(135deg, #1a1a2a, #2a2a3a); border: 3px solid #ff69b4; border-radius: 50px; padding: 30px; text-align: center; z-index: 350; display: none; min-width: 300px; }
+        .friend-request button { padding: 12px 25px; margin: 10px; border-radius: 40px; font-weight: bold; cursor: pointer; }
+        .accept-btn { background: #44ff44; }
+        .reject-btn { background: #ff4444; color: white; }
+        .save-friend-notification { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: linear-gradient(135deg, #1a1a2a, #2a2a3a); border: 3px solid #ff69b4; border-radius: 50px; padding: 30px; text-align: center; z-index: 350; display: none; min-width: 300px; }
+        .save-friend-notification button { padding: 12px 25px; margin: 10px; border-radius: 40px; font-weight: bold; cursor: pointer; }
+        .save-yes { background: #44ff44; }
+        .save-no { background: #ff4444; color: white; }
     </style>
 </head>
 <body>
 
-<!-- TELA INICIAL -->
 <div id="startScreen" class="screen">
     <div class="card">
         <h1>👑 PRINCESA EMANUELLY 👑</h1>
         <input type="text" id="playerName" placeholder="Seu nome" maxlength="15" value="Princesa">
-        <div class="code-box">
-            <div style="color:#aaa; font-size:12px;">📋 SEU CÓDIGO:</div>
-            <span id="myCode">------</span>
-        </div>
+        <div class="code-box"><span id="myCode">------</span></div>
         <button id="copyCodeBtn" class="btn-orange">📋 COPIAR</button>
         <button id="createRoomBtn" class="btn-green">🎮 CRIAR SALA</button>
         <button id="joinRoomBtn" class="btn-blue">🔗 ENTRAR EM SALA</button>
@@ -268,7 +66,6 @@
     </div>
 </div>
 
-<!-- TELA DIGITAR CÓDIGO -->
 <div id="joinCodeScreen" class="screen" style="display: none;">
     <div class="card">
         <h1>🔗 DIGITE O CÓDIGO</h1>
@@ -278,15 +75,13 @@
     </div>
 </div>
 
-<!-- TELA LOBBY -->
 <div id="lobbyScreen" class="screen" style="display: none;">
     <div class="card">
         <h1>👥 AGUARDANDO...</h1>
-        <div class="code-box">
-            <span id="lobbyCodeDisplay">------</span>
-        </div>
+        <div class="code-box"><span id="lobbyCodeDisplay">------</span></div>
         <div class="waiting-status" id="waitingMsg">🟡 Aguardando amigo...</div>
         <div id="playerConnectedMsg" style="color:#44ff44; margin:10px 0;"></div>
+        <button id="startGameBtn" class="btn-green" style="display:none;">▶ INICIAR JOGO</button>
         <button id="cancelRoomBtn" class="btn-red">🚪 CANCELAR</button>
     </div>
 </div>
@@ -294,12 +89,12 @@
 <div id="notification" class="notification"></div>
 <div id="connectionStatus" class="connection-status">🔌 Desconectado</div>
 <div id="friendRequestPopup" class="friend-request">
-    <p><span class="request-name" id="requesterName">Amigo</span> quer jogar com você!</p>
+    <p><span id="requesterName" style="color:#ff69b4; font-size:24px;">Amigo</span> quer jogar com você!</p>
     <button id="acceptRequestBtn" class="accept-btn">✅ ACEITAR</button>
     <button id="rejectRequestBtn" class="reject-btn">❌ RECUSAR</button>
 </div>
 <div id="saveFriendNotification" class="save-friend-notification">
-    <p>Deseja salvar <span class="friend-name" id="saveFriendName">Amigo</span> como amigo?</p>
+    <p>Deseja salvar <span id="saveFriendName" style="color:#ff69b4; font-size:24px;">Amigo</span> como amigo?</p>
     <button id="saveYesBtn" class="save-yes">✅ SIM, SALVAR</button>
     <button id="saveNoBtn" class="save-no">❌ NÃO</button>
 </div>
@@ -319,31 +114,32 @@
         <span id="friendNameDisplay" style="color:#44ff44; background:#000; padding:3px 10px; border-radius:20px;"></span>
     </div>
     <div class="touch-controls">
-        <div class="dpad">
-            <button id="leftBtn" class="btn btn-left">◀</button>
-            <button id="rightBtn" class="btn btn-right">▶</button>
-        </div>
-        <div class="right-actions">
-            <button id="jumpBtn" class="btn btn-jump">⭐</button>
-            <button id="torchBtn" class="btn btn-torch">🔥</button>
-        </div>
+        <div class="dpad"><button id="leftBtn" class="btn btn-left">◀</button><button id="rightBtn" class="btn btn-right">▶</button></div>
+        <div class="right-actions"><button id="jumpBtn" class="btn btn-jump">⭐</button><button id="torchBtn" class="btn btn-torch">🔥</button></div>
     </div>
-    <div class="controls-footer">
-        👆 Toque nos botões | 🔥 TOCHA INFINITA | 👹 GUARDIÃO 50 tochas
-    </div>
+    <div class="controls-footer">👆 Toque nos botões | 🔥 TOCHA INFINITA | 🤖 GUARDIÃO 100 tochas</div>
 </div>
 
 <script>
-// ========== CONFIGURAÇÃO DO FIREBASE ==========
+
+  // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyDBlgx1vlnYYhzoJ457LT-G8AOMGBFzwYk",
-  authDomain: "princesa-nu-online.firebaseapp.com",
-  projectId: "princesa-nu-online",
-  storageBucket: "princesa-nu-online.firebasestorage.app",
-  messagingSenderId: "551957479275",
-  appId: "1:551957479275:web:c9b157efb6168f0a28562e"
+  apiKey: "AIzaSyAeRybVgZFjj6LhbPgYsVqpdl0eOIfVY5U",
+  authDomain: "online-app-e95f6.firebaseapp.com",
+  projectId: "online-app-e95f6",
+  storageBucket: "online-app-e95f6.firebasestorage.app",
+  messagingSenderId: "166050844176",
+  appId: "1:166050844176:web:9ecee22f2ca3a703a78495"
 };
-    
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+
 let db = null;
 let multiplayerActive = false;
 let currentRoomId = null;
@@ -354,6 +150,7 @@ let myPlayerId = null;
 let roomRef = null;
 let myPosRef = null;
 let otherPosRef = null;
+let gameAlreadyStarted = false;
 
 try {
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
@@ -366,14 +163,7 @@ try {
 let remotePlayerData = { x: 300, y: 430, w: 34, h: 38, facingRight: true, legAnim: 0, onGround: true };
 
 function generateRoomCode() { return Math.floor(100000 + Math.random() * 900000).toString(); }
-
-function showNotif(msg, bg = '#44ff44') {
-    const n = document.getElementById('notification');
-    n.innerHTML = msg;
-    n.style.background = bg;
-    n.style.display = 'block';
-    setTimeout(() => n.style.display = 'none', 2500);
-}
+function showNotif(msg, bg) { const n = document.getElementById('connectionStatus'); n.innerHTML = msg; n.style.background = bg || '#44ff44'; setTimeout(() => { if(!multiplayerActive) n.innerHTML = '🔌 Desconectado'; }, 2000); }
 
 function createMultiplayerRoom() {
     const name = document.getElementById('playerName').value.trim();
@@ -390,6 +180,7 @@ function createMultiplayerRoom() {
         hostId: myPlayerId,
         hostName: name,
         status: 'waiting',
+        gameStarted: false,
         createdAt: Date.now()
     });
     
@@ -402,8 +193,14 @@ function createMultiplayerRoom() {
             showNotif(`✅ ${otherPlayerNameFB} entrou na sala!`);
             document.getElementById('connectionStatus').innerHTML = `👥 ${otherPlayerNameFB} conectado`;
             document.getElementById('playerConnectedMsg').innerHTML = `🎮 Amigo: ${otherPlayerNameFB}`;
-            document.getElementById('waitingMsg').innerHTML = `🟢 ${otherPlayerNameFB} entrou! Iniciando...`;
-            setTimeout(() => startMultiplayerGame(), 1000);
+            document.getElementById('waitingMsg').innerHTML = `🟢 ${otherPlayerNameFB} entrou! Clique em INICIAR`;
+            document.getElementById('startGameBtn').style.display = 'block';
+        }
+    });
+    
+    roomRef.child('gameStarted').on('value', (snap) => {
+        if (snap.val() === true && !gameAlreadyStarted) {
+            startMultiplayerGame();
         }
     });
     
@@ -412,6 +209,7 @@ function createMultiplayerRoom() {
     document.getElementById('lobbyCodeDisplay').innerHTML = roomCode;
     document.getElementById('waitingMsg').innerHTML = `🟡 Aguardando amigo...<br>Código: <strong>${roomCode}</strong>`;
     document.getElementById('connectionStatus').innerHTML = `🟡 Sala: ${roomCode}`;
+    document.getElementById('startGameBtn').style.display = 'none';
 }
 
 function joinMultiplayerRoom(roomCode) {
@@ -432,21 +230,35 @@ function joinMultiplayerRoom(roomCode) {
         otherPlayerNameFB = sala.hostName;
         
         roomRef.child('guest').set({ id: myPlayerId, name: name });
-        
         multiplayerActive = true;
         
-        document.getElementById('startScreen').style.display = 'none';
+        document.getElementById('joinCodeScreen').style.display = 'none';
         document.getElementById('lobbyScreen').style.display = 'flex';
         document.getElementById('lobbyCodeDisplay').innerHTML = roomCode;
         document.getElementById('waitingMsg').innerHTML = `🟡 Conectado a ${otherPlayerNameFB}. Aguardando...`;
         document.getElementById('playerConnectedMsg').innerHTML = `🎮 Host: ${otherPlayerNameFB}`;
         document.getElementById('connectionStatus').innerHTML = `👥 Conectado a ${otherPlayerNameFB}`;
+        document.getElementById('startGameBtn').style.display = 'none';
         
-        startMultiplayerGame();
+        roomRef.child('gameStarted').on('value', (snap) => {
+            if (snap.val() === true) {
+                startMultiplayerGame();
+            }
+        });
     });
 }
 
+function startGameByHost() {
+    if (isHost && roomRef) {
+        roomRef.child('gameStarted').set(true);
+        startMultiplayerGame();
+    }
+}
+
 function startMultiplayerGame() {
+    if (gameAlreadyStarted) return;
+    gameAlreadyStarted = true;
+    
     myPosRef = roomRef.child(`players/${myPlayerId}`);
     otherPosRef = roomRef.child(`players/${otherPlayerId}`);
     
@@ -469,8 +281,8 @@ function startMultiplayerGame() {
     document.getElementById('exitGameBtn').style.display = 'block';
     document.getElementById('connectionStatus').innerHTML = `👥 Jogando com ${otherPlayerNameFB}`;
     
-    if (typeof window.isMultiplayerActive !== 'undefined') window.isMultiplayerActive = true;
-    if (typeof window.otherPlayerGlobal !== 'undefined') window.otherPlayerGlobal = otherPlayerNameFB;
+    window.isMultiplayerActive = true;
+    window.otherPlayerGlobal = otherPlayerNameFB;
     
     setTimeout(() => {
         document.getElementById('saveFriendName').innerHTML = otherPlayerNameFB;
@@ -484,6 +296,8 @@ function exitMultiplayer() {
         roomRef = null;
     }
     multiplayerActive = false;
+    gameAlreadyStarted = false;
+    window.isMultiplayerActive = false;
     document.getElementById('gameContainer').style.display = 'none';
     document.getElementById('exitGameBtn').style.display = 'none';
     document.getElementById('lobbyScreen').style.display = 'none';
@@ -491,7 +305,6 @@ function exitMultiplayer() {
     document.getElementById('startScreen').style.display = 'flex';
     document.getElementById('connectionStatus').innerHTML = '🔌 Desconectado';
     document.getElementById('friendNameDisplay').innerHTML = '';
-    if (typeof window.isMultiplayerActive !== 'undefined') window.isMultiplayerActive = false;
 }
 
 document.getElementById('saveYesBtn').onclick = () => {
@@ -505,7 +318,7 @@ document.getElementById('saveYesBtn').onclick = () => {
 };
 document.getElementById('saveNoBtn').onclick = () => { document.getElementById('saveFriendNotification').style.display = 'none'; };
 
-// ========== JOGO ORIGINAL COMPLETO (SÓ CORRIGI A TELA AZUL) ==========
+// ========== JOGO COMPLETO COM ELEMENTOS ESPACIAIS REALISTAS ==========
 (function() {
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
@@ -523,7 +336,7 @@ document.getElementById('saveNoBtn').onclick = () => { document.getElementById('
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
     
-    // ========== ÁUDIO ORIGINAL ==========
+    // ========== ÁUDIO ORIGINAL COMPLETO E CORRETO ==========
     let audioContext = null, currentSongIndex = 0, songTimeout = null, musicGain = null, isPlaying = false, audioEnabled = false;
     const tempo = 0.155;
     
@@ -588,6 +401,7 @@ document.getElementById('saveNoBtn').onclick = () => { document.getElementById('
     let jumpAnimTimer = 0;
     let phaseTransitionDelay = false;
     
+    // SUA PERSONAGEM REAL REUTILIZADA EXATAMENTE
     let player = {
         x: 150, y: GROUND_Y - 38, w: 34, h: 38,
         vx: 0, vy: 0, onGround: true, facingRight: true,
@@ -608,6 +422,11 @@ document.getElementById('saveNoBtn').onclick = () => { document.getElementById('
     let flagGuardian = null;
     let giantMushroom = null;
     
+    // Efeitos Realistas do Espaço
+    let spaceStars = [];
+    let shootingStars = [];
+    let dynamicPlanet = { x: 0, y: 0, size: 0, color1: '', color2: '', hasRing: false };
+
     const GRAVITY = 0.68;
     const JUMP = -10.3;
     const ACC = 0.78;
@@ -665,17 +484,49 @@ document.getElementById('saveNoBtn').onclick = () => { document.getElementById('
         }
     }
     
+    // GERAÇÃO DE ELEMENTOS ESPACIAIS E MAPA ACENTUADO COM MAIS INIMIGOS
     function buildPhase(phase) {
         worldWidth = 10000 + (phase * 1000);
         const baseY = GROUND_Y;
+        
+        // Gerar Estrelas Cintilantes Fixas no Espaço
+        spaceStars = [];
+        for(let i=0; i<150; i++) {
+            spaceStars.push({ x: Math.random() * 1200, y: Math.random() * 320, size: Math.random() * 2 + 1, alpha: Math.random(), speed: 0.01 + Math.random()*0.02 });
+        }
+        shootingStars = [];
+        
+        // Planeta de Fundo com Cores Variadas por Fase
+        const colors = [["#4a90d9","#1a407a"], ["#ff6b6b","#8b0000"], ["#e066ff","#5d008b"], ["#3ae3b5","#0a5c43"], ["#ffb347","#b85300"]];
+        let cPair = colors[phase % colors.length];
+        dynamicPlanet = {
+            x: 150 + Math.random() * 500,
+            y: 50 + Math.random() * 100,
+            size: 60 + Math.random() * 70,
+            color1: cPair[0],
+            color2: cPair[1],
+            hasRing: phase % 2 === 0
+        };
+
         flagGuardian = { x: worldWidth - 200, y: baseY - 95, w: 85, h: 95, active: true, hits: 0, direction: -1, moveTimer: 0 };
         if (phase >= 8) giantMushroom = { x: worldWidth - 500, y: baseY - 65, w: 40, h: 40, collected: false };
-        platforms = [{ x: 0, y: baseY, w: worldWidth, h: 18 }];
-        for (let i = 0; i < 15 + phase; i++) { let px = 300 + (i * 380) + (phase * 15); let py = baseY - 45 - (i % 5) * 35; if (px < worldWidth - 200) { platforms.push({ x: px, y: py, w: 75, h: 24 }); if (phase > 10 && i % 3 === 0) platforms.push({ x: px + 65, y: py - 45, w: 65, h: 24 }); } }
         
+        platforms = [{ x: 0, y: baseY, w: worldWidth, h: 18 }];
+        
+        // Criação de Plataformas Originais
+        for (let i = 0; i < 15 + phase; i++) { 
+            let px = 300 + (i * 380) + (phase * 15); 
+            let py = baseY - 45 - (i % 5) * 35; 
+            if (px < worldWidth - 200) { 
+                platforms.push({ x: px, y: py, w: 75, h: 24 }); 
+                if (phase > 10 && i % 3 === 0) platforms.push({ x: px + 65, y: py - 45, w: 65, h: 24 }); 
+            } 
+        }
+        
+        // DENSIDADE ADICIONAL DE INIMIGOS (Muito mais monstros)
         enemies = [];
-        for (let i = 0; i < 12 + Math.floor(phase * 1.5); i++) { 
-            let ex = 250 + (i * 350) + (phase * 30);
+        for (let i = 0; i < 25 + Math.floor(phase * 2); i++) { 
+            let ex = 250 + (i * 220) + (phase * 10);
             if (ex < worldWidth - 300) {
                 enemies.push({ 
                     x: ex, y: baseY - 34, w: 32, h: 32, 
@@ -684,18 +535,26 @@ document.getElementById('saveNoBtn').onclick = () => { document.getElementById('
                 });
             }
         }
+        // Monstros em cima das plataformas flutuantes
         for (let i = 0; i < platforms.length; i++) {
-            if (platforms[i].y < baseY - 30 && Math.random() > 0.6) {
+            if (platforms[i].y < baseY - 30 && Math.random() > 0.4) {
                 enemies.push({ 
-                    x: platforms[i].x + 20, y: platforms[i].y - 32, w: 32, h: 32, 
+                    x: platforms[i].x + 15, y: platforms[i].y - 32, w: 32, h: 32, 
                     alive: true, type: Math.floor(Math.random() * 4), walkDir: Math.random() > 0.5 ? 1 : -1, 
                     frame: 0 
                 });
             }
         }
         
+        // MOEDAS GRANDES E LINDAS
         coins = [];
-        for (let i = 0; i < 200; i++) { let cx = 120 + (i * 40) % (worldWidth - 200); let cy = baseY - 48; if (i % 4 === 0) cy = baseY - 75; if (i % 6 === 0) cy = baseY - 100; coins.push({ x: cx, y: cy, w: 14, h: 14, collected: false }); }
+        for (let i = 0; i < 250; i++) { 
+            let cx = 120 + (i * 45) % (worldWidth - 200); 
+            let cy = baseY - 55; 
+            if (i % 3 === 0) cy = baseY - 90; 
+            if (i % 5 === 0) cy = baseY - 130; 
+            coins.push({ x: cx, y: cy, w: 22, h: 22, collected: false }); 
+        }
         
         birds = [];
         for (let i = 0; i < 10; i++) birds.push({ x: Math.random() * (worldWidth + 500), y: 40 + Math.random() * 100, speed: 0.5 + Math.random() * 0.7, wing: Math.random() * Math.PI * 2, size: 4 + Math.random() * 4 });
@@ -741,13 +600,31 @@ document.getElementById('saveNoBtn').onclick = () => { document.getElementById('
     }
     
     function collectCoins() {
-        for (let c of coins) { if (!c.collected && player.x < c.x + 14 && player.x + player.w > c.x && player.y < c.y + 14 && player.y + player.h > c.y) { c.collected = true; totalCoins++; totalScore += 25; playCoinSound(); updateUI(); } }
+        for (let c of coins) { if (!c.collected && player.x < c.x + c.w && player.x + player.w > c.x && player.y < c.y + c.h && player.y + player.h > c.y) { c.collected = true; totalCoins++; totalScore += 25; playCoinSound(); updateUI(); } }
     }
     
     function checkPhaseComplete() {
         if (!phaseComplete && !isRespawning && gameActive && !phaseTransitionDelay) {
             if (flagGuardian && flagGuardian.active) return;
-            if (player.x + player.w > worldWidth - 80) { phaseComplete = true; gameActive = false; phaseTransitionDelay = true; playFlagSound(); setTimeout(() => { if (currentPhase < 33) { currentPhase++; phaseAttempts = 3; loadPhase(currentPhase); gameActive = true; phaseComplete = false; phaseTransitionDelay = false; } else { alert(`🏆 PARABÉNS! VOCÊ ZEROU O JOGO! 🏆`); exitMultiplayer(); } }, 500); }
+            if (player.x + player.w > worldWidth - 80) { 
+                phaseComplete = true; 
+                gameActive = false; 
+                phaseTransitionDelay = true; 
+                playFlagSound(); 
+                setTimeout(() => { 
+                    if (currentPhase < 33) { 
+                        currentPhase++; 
+                        phaseAttempts = 3; 
+                        loadPhase(currentPhase); 
+                        gameActive = true; 
+                        phaseComplete = false; 
+                        phaseTransitionDelay = false; 
+                    } else { 
+                        alert(`🏆 PARABÉNS! VOCÊ ZEROU O JOGO! 🏆`); 
+                        exitMultiplayer(); 
+                    } 
+                }, 500); 
+            }
         }
     }
     
@@ -771,6 +648,24 @@ document.getElementById('saveNoBtn').onclick = () => { document.getElementById('
             cameraX = cameraX * 0.92 + targetCam * 0.08;
             return;
         }
+        
+        // Atualizar Cintilação das Estrelas
+        spaceStars.forEach(s => {
+            s.alpha += s.speed;
+            if(s.alpha > 1 || s.alpha < 0) s.speed *= -1;
+        });
+
+        // Frequência de Estrelas Cadentes Realistas
+        if(Math.random() > 0.985 && shootingStars.length < 3) {
+            shootingStars.push({ x: Math.random() * W, y: -20, vx: -(2 + Math.random() * 4), vy: 2 + Math.random() * 4, length: 40 + Math.random() * 40, life: 1 });
+        }
+        shootingStars.forEach((ss, idx) => {
+            ss.x += ss.vx;
+            ss.y += ss.vy;
+            ss.life -= 0.015;
+            if(ss.life <= 0 || ss.y > H) shootingStars.splice(idx, 1);
+        });
+
         for (let b of birds) { b.x += b.speed; if (b.x > worldWidth + 200) b.x = -100; b.wing += 0.15; }
         updateTorches(); updateFlagGuardian();
         if (jumpPressed && player.onGround) { player.vy = JUMP; player.onGround = false; jumpPressed = false; isJumpingAnim = true; jumpAnimTimer = 8; }
@@ -809,42 +704,197 @@ document.getElementById('saveNoBtn').onclick = () => { document.getElementById('
         ctx.fillStyle = "#fff"; ctx.font = "bold 9px monospace"; ctx.fillText(window.otherPlayerGlobal, x + 5, y - 5);
     }
     
+    // RENDERIZAÇÃO REALISTA DO ESPAÇO + CENÁRIO E MONTANHAS ORIGINAIS
     function drawSkyBackground() {
+        // Fundo com Gradiente de Nebulosa Espacial Escura
         const grad = ctx.createLinearGradient(0, 0, 0, H);
-        grad.addColorStop(0, "#87CEEB");
-        grad.addColorStop(1, "#4A90D9");
+        grad.addColorStop(0, "#03020c");
+        grad.addColorStop(0.5, "#0b061a");
+        grad.addColorStop(1, "#170826");
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, W, H);
         
-        ctx.fillStyle = "#ffe066";
-        ctx.beginPath();
-        ctx.ellipse(W - 80, 70, 45, 45, 0, 0, Math.PI*2);
-        ctx.fill();
+        // Desenhar Estrelas Cintilantes
+        spaceStars.forEach(s => {
+            ctx.fillStyle = `rgba(255, 255, 255, ${s.alpha})`;
+            ctx.fillRect(s.x, s.y, s.size, s.size);
+        });
+
+        // Desenhar Estrelas Cadentes com Rastro Realista
+        shootingStars.forEach(ss => {
+            ctx.save();
+            let tailGrad = ctx.createLinearGradient(ss.x, ss.y, ss.x - ss.vx * 2, ss.y - ss.vy * 2);
+            tailGrad.addColorStop(0, `rgba(255, 220, 100, ${ss.life})`);
+            tailGrad.addColorStop(0.3, `rgba(255, 100, 50, ${ss.life * 0.6})`);
+            tailGrad.addColorStop(1, "rgba(255, 0, 0, 0)");
+            ctx.strokeStyle = tailGrad;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(ss.x, ss.y);
+            ctx.lineTo(ss.x - ss.vx * 3, ss.y - ss.vy * 3);
+            ctx.stroke();
+            ctx.restore();
+        });
+
+        // Desenhar o Planeta Realista de Fundo
+        let pDx = dynamicPlanet.x - cameraX * 0.05;
+        if(pDx + 150 > 0 && pDx - 150 < W) {
+            ctx.save();
+            let pGrad = ctx.createRadialGradient(pDx - dynamicPlanet.size/3, dynamicPlanet.y - dynamicPlanet.size/3, dynamicPlanet.size/10, pDx, dynamicPlanet.y, dynamicPlanet.size);
+            pGrad.addColorStop(0, dynamicPlanet.color1);
+            pGrad.addColorStop(0.8, dynamicPlanet.color2);
+            pGrad.addColorStop(1, "#020105");
+            ctx.fillStyle = pGrad;
+            ctx.beginPath();
+            ctx.arc(pDx, dynamicPlanet.y, dynamicPlanet.size, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Anel do Planeta (Se houver na Fase)
+            if(dynamicPlanet.hasRing) {
+                ctx.strokeStyle = "rgba(230, 180, 255, 0.4)";
+                ctx.lineWidth = 6;
+                ctx.save();
+                ctx.translate(pDx, dynamicPlanet.y);
+                ctx.rotate(-0.25);
+                ctx.scale(2, 0.3);
+                ctx.beginPath();
+                ctx.arc(0, 0, dynamicPlanet.size + 15, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+            }
+            ctx.restore();
+        }
         
-        ctx.fillStyle = "#5a8e3a";
-        for (let i = 0; i < 5; i++) { let mx = (i * 320) - (cameraX * 0.1) % 900; ctx.beginPath(); ctx.moveTo(mx, GROUND_Y - 40); ctx.lineTo(mx + 80, GROUND_Y - 160); ctx.lineTo(mx + 160, GROUND_Y - 40); ctx.fill(); }
+        // SUAS MONTANHAS DE FUNDO ORIGINAIS MANTIDAS INTEGRADAS
+        ctx.fillStyle = "#201236"; // Tom escuro harmonizado com o espaço
+        for (let i = 0; i < 5; i++) { 
+            let mx = (i * 320) - (cameraX * 0.1) % 900; 
+            ctx.beginPath(); 
+            ctx.moveTo(mx, GROUND_Y - 40); 
+            ctx.lineTo(mx + 80, GROUND_Y - 160); 
+            ctx.lineTo(mx + 160, GROUND_Y - 40); 
+            ctx.fill(); 
+        }
         
-        ctx.fillStyle = "#3a6a1a";
+        // Chão e Plataformas Originais
+        ctx.fillStyle = "#3a1e54";
         ctx.fillRect(0, GROUND_Y - 12, W, 18);
         
-        for (let plat of platforms) { let dx = plat.x - cameraX; if (dx + plat.w < 0 || dx > W) continue; ctx.fillStyle = "#8b6946"; ctx.fillRect(dx, plat.y, plat.w, plat.h); ctx.fillStyle = "#5d3f20"; ctx.fillRect(dx, plat.y + 3, plat.w, 4); }
+        for (let plat of platforms) { 
+            let dx = plat.x - cameraX; 
+            if (dx + plat.w < 0 || dx > W) continue; 
+            ctx.fillStyle = "#5c2d91"; 
+            ctx.fillRect(dx, plat.y, plat.w, plat.h); 
+            ctx.fillStyle = "#431b6b"; 
+            ctx.fillRect(dx, plat.y + 3, plat.w, 4); 
+        }
         
-        for (let c of coins) { if (c.collected) continue; let dx = c.x - cameraX; if (dx + 14 < 0 || dx > W) continue; ctx.fillStyle = "#ffdd55"; ctx.beginPath(); ctx.ellipse(dx + 7, c.y + 7, 7, 9, 0, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = "#e6b800"; ctx.fillRect(dx + 3, c.y + 5, 8, 4); }
+        // MOEDAS GRANDES, LINDAS E PISCANTES
+        for (let c of coins) { 
+            if (c.collected) continue; 
+            let dx = c.x - cameraX; 
+            if (dx + c.w < 0 || dx > W) continue; 
+            
+            ctx.save();
+            // Efeito de brilho piscante dourado
+            ctx.fillStyle = (Math.floor(Date.now() / 100) % 2 === 0) ? "#ffd700" : "#ffaa00"; 
+            ctx.beginPath(); 
+            ctx.arc(dx + c.w/2, c.y + c.h/2, c.w/2, 0, Math.PI*2); 
+            ctx.fill(); 
+            
+            // Relevo interno da Moeda Grande
+            ctx.fillStyle = "rgba(0,0,0,0.25)";
+            ctx.fillRect(dx + c.w/2 - 2, c.y + 4, 4, c.h - 8);
+            ctx.restore();
+        }
         
-        for (let e of enemies) { if (!e.alive) continue; let dx = e.x - cameraX; if (dx + 32 < 0 || dx > W) continue; ctx.fillStyle = "#8b5a2b"; ctx.fillRect(dx, e.y, 32, 32); ctx.fillStyle = "#593a18"; ctx.fillRect(dx + 6, e.y + 12, 7, 8); ctx.fillRect(dx + 19, e.y + 12, 7, 8); ctx.fillStyle = "#000"; ctx.fillRect(dx + 9, e.y + 8, 4, 5); ctx.fillRect(dx + 20, e.y + 8, 4, 5); }
+        // Monstros Originais
+        for (let e of enemies) { 
+            if (!e.alive) continue; 
+            let dx = e.x - cameraX; 
+            if (dx + 32 < 0 || dx > W) continue; 
+            ctx.fillStyle = "#8b5a2b"; 
+            ctx.fillRect(dx, e.y, 32, 32); 
+            ctx.fillStyle = "#593a18"; 
+            ctx.fillRect(dx + 6, e.y + 12, 7, 8); 
+            ctx.fillRect(dx + 19, e.y + 12, 7, 8); 
+            ctx.fillStyle = "#000"; 
+            ctx.fillRect(dx + 9, e.y + 8, 4, 5); 
+            ctx.fillRect(dx + 20, e.y + 8, 4, 5); 
+        }
         
-        for (let b of birds) { let dx = b.x - cameraX; if (dx < -50 || dx > W + 50) continue; ctx.fillStyle = "#444"; ctx.beginPath(); ctx.ellipse(dx, b.y, b.size, b.size/1.5, 0, 0, Math.PI*2); ctx.fill(); const wingY = Math.sin(b.wing) > 0 ? -4 : 3; ctx.fillStyle = "#666"; ctx.beginPath(); ctx.moveTo(dx - b.size, b.y); ctx.lineTo(dx - b.size - 5, b.y + wingY); ctx.lineTo(dx - b.size, b.y + 1); ctx.fill(); ctx.beginPath(); ctx.moveTo(dx + b.size, b.y); ctx.lineTo(dx + b.size + 5, b.y + wingY); ctx.lineTo(dx + b.size, b.y + 1); ctx.fill(); ctx.fillStyle = "#fff"; ctx.fillRect(dx + b.size/2, b.y - 2, 2, 2); }
+        // Passarinhos Originais
+        for (let b of birds) { 
+            let dx = b.x - cameraX; 
+            if (dx < -50 || dx > W + 50) continue; 
+            ctx.fillStyle = "#a884e4"; 
+            ctx.beginPath(); 
+            ctx.ellipse(dx, b.y, b.size, b.size/1.5, 0, 0, Math.PI*2); 
+            ctx.fill(); 
+            const wingY = Math.sin(b.wing) > 0 ? -4 : 3; 
+            ctx.fillStyle = "#8250cc"; 
+            ctx.beginPath(); 
+            ctx.moveTo(dx - b.size, b.y); 
+            ctx.lineTo(dx - b.size - 5, b.y + wingY); 
+            ctx.lineTo(dx - b.size, b.y + 1); 
+            ctx.fill(); 
+            ctx.beginPath(); 
+            ctx.moveTo(dx + b.size, b.y); 
+            ctx.lineTo(dx + b.size + 5, b.y + wingY); 
+            ctx.lineTo(dx + b.size, b.y + 1); 
+            ctx.fill(); 
+            ctx.fillStyle = "#fff"; 
+            ctx.fillRect(dx + b.size/2, b.y - 2, 2, 2); 
+        }
         
+        // Bandeira Final
         let fx = worldWidth - 100 - cameraX;
-        if (fx + 40 > 0 && fx < W) { ctx.fillStyle = "#b87a3a"; ctx.fillRect(fx, GROUND_Y - 130, 8, 130); ctx.fillStyle = "#ff5533"; ctx.beginPath(); ctx.moveTo(fx + 6, GROUND_Y - 130); ctx.lineTo(fx + 55, GROUND_Y - 108); ctx.lineTo(fx + 6, GROUND_Y - 86); ctx.fill(); ctx.fillStyle = "#ffdd99"; ctx.font = "bold 18px monospace"; ctx.fillText("🏁", fx + 20, GROUND_Y - 145); }
+        if (fx + 40 > 0 && fx < W) { 
+            ctx.fillStyle = "#b87a3a"; 
+            ctx.fillRect(fx, GROUND_Y - 130, 8, 130); 
+            ctx.fillStyle = "#ff5533"; 
+            ctx.beginPath(); 
+            ctx.moveTo(fx + 6, GROUND_Y - 130); 
+            ctx.lineTo(fx + 55, GROUND_Y - 108); 
+            ctx.lineTo(fx + 6, GROUND_Y - 86); 
+            ctx.fill(); 
+            ctx.fillStyle = "#ffdd99"; 
+            ctx.font = "bold 18px monospace"; 
+            ctx.fillText("🏁", fx + 20, GROUND_Y - 145); 
+        }
         
-        if (giantMushroom && !giantMushroom.collected) { let dx = giantMushroom.x - cameraX; if (dx + 40 > 0 && dx < W) { ctx.fillStyle = "#ff4444"; ctx.fillRect(dx, giantMushroom.y, 40, 40); ctx.fillStyle = "#ffffff"; ctx.fillRect(dx + 8, giantMushroom.y + 8, 24, 24); ctx.fillStyle = "#ff0000"; ctx.fillRect(dx + 12, giantMushroom.y + 18, 16, 10); ctx.fillStyle = "#ffff00"; ctx.font = "bold 14px monospace"; ctx.fillText("+500", dx + 8, giantMushroom.y - 5); } }
+        if (giantMushroom && !giantMushroom.collected) { 
+            let dx = giantMushroom.x - cameraX; 
+            if (dx + 40 > 0 && dx < W) { 
+                ctx.fillStyle = "#ff4444"; 
+                ctx.fillRect(dx, giantMushroom.y, 40, 40); 
+                ctx.fillStyle = "#ffffff"; 
+                ctx.fillRect(dx + 8, giantMushroom.y + 8, 24, 24); 
+                ctx.fillStyle = "#ff0000"; 
+                ctx.fillRect(dx + 12, giantMushroom.y + 18, 16, 10); 
+                ctx.fillStyle = "#ffff00"; 
+                ctx.font = "bold 14px monospace"; 
+                ctx.fillText("+500", dx + 8, giantMushroom.y - 5); 
+            } 
+        }
         
         drawFlagGuardian();
         
-        for (let t of torchesList) { let dx = t.x - cameraX; if (dx + 12 < -50 || dx > W + 50) continue; ctx.fillStyle = "#ff6600"; ctx.fillRect(dx, t.y, t.width, t.height); ctx.fillStyle = "#ffcc00"; ctx.beginPath(); ctx.moveTo(dx + 6, t.y - 5); ctx.lineTo(dx + 12, t.y); ctx.lineTo(dx, t.y); ctx.fill(); }
+        for (let t of torchesList) { 
+            let dx = t.x - cameraX; 
+            if (dx + 12 < -50 || dx > W + 50) continue; 
+            ctx.fillStyle = "#ff6600"; 
+            ctx.fillRect(dx, t.y, t.width, t.height); 
+            ctx.fillStyle = "#ffcc00"; 
+            ctx.beginPath(); 
+            ctx.moveTo(dx + 6, t.y - 5); 
+            ctx.lineTo(dx + 12, t.y); 
+            ctx.lineTo(dx, t.y); 
+            ctx.fill(); 
+        }
     }
     
+    // SUA PERSONAGEM REAL EXATAMENTE COMO VOCÊ MANDOU
     function drawPlayerCharacter() {
         if (player.invincible > 0 && (Math.floor(Date.now() / 60) % 3 === 0)) return;
         let x = player.x - cameraX;
@@ -891,7 +941,7 @@ document.getElementById('saveNoBtn').onclick = () => { document.getElementById('
         requestAnimationFrame(gameLoop); 
     }
     
-    // BOTÕES
+    // CONTROLES ORIGINAIS DOS BOTÕES
     document.getElementById('leftBtn').addEventListener('mousedown', (e) => { e.preventDefault(); leftPressed = true; });
     document.getElementById('leftBtn').addEventListener('mouseup', () => leftPressed = false);
     document.getElementById('leftBtn').addEventListener('touchstart', (e) => { e.preventDefault(); leftPressed = true; });
@@ -913,11 +963,9 @@ document.getElementById('saveNoBtn').onclick = () => { document.getElementById('
     
     loadPhase(1);
     gameLoop();
-    document.getElementById('gameContainer').style.display = 'none';
-    document.getElementById('startScreen').style.display = 'flex';
 })();
 
-// EVENTOS DAS TELAS
+// EVENTOS DE TELA ORIGINAIS MANTIDOS INTEGROS
 document.getElementById('copyCodeBtn').onclick = () => { const c = document.getElementById('myCode').innerText; if (c) navigator.clipboard.writeText(c); showNotif('✅ Código copiado!'); };
 document.getElementById('createRoomBtn').onclick = () => createMultiplayerRoom();
 document.getElementById('joinRoomBtn').onclick = () => { document.getElementById('startScreen').style.display = 'none'; document.getElementById('joinCodeScreen').style.display = 'flex'; };
@@ -928,6 +976,7 @@ document.getElementById('cancelRoomBtn').onclick = () => exitMultiplayer();
 document.getElementById('exitGameBtn').onclick = () => exitMultiplayer();
 document.getElementById('acceptRequestBtn').onclick = () => { document.getElementById('friendRequestPopup').style.display = 'none'; startMultiplayerGame(); };
 document.getElementById('rejectRequestBtn').onclick = () => { document.getElementById('friendRequestPopup').style.display = 'none'; showNotif('❌ Convite recusado', '#ff4444'); };
+document.getElementById('startGameBtn').onclick = () => startGameByHost();
 
 document.getElementById('myCode').innerHTML = Math.floor(100000 + Math.random() * 900000).toString();
 </script>
