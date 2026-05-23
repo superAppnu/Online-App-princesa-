@@ -143,13 +143,14 @@ let otherPosRef = null;
 let gameAlreadyStarted = false;
 
 try {
+    try {
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     db = firebase.database();
     document.getElementById('connectionStatus').innerHTML = "✅ Firebase OK";
-    firebase.auth().onAuthStateChanged((user) => {
-    if (user) {
-        console.log("Usuário logado! O jogo vai carregar agora.");
-    try {
+} catch(e) {
+    document.getElementById('connectionStatus').innerHTML = "⚠️ Configure o Firebase";
+}
+
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     db = firebase.database();
     document.getElementById('connectionStatus').innerHTML = "✅ Firebase OK";
