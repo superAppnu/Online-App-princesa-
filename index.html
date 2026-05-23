@@ -149,15 +149,26 @@ try {
     firebase.auth().onAuthStateChanged((user) => {
     if (user) {
         console.log("Usuário logado! O jogo vai carregar agora.");
-        // Se o seu jogo tiver uma função para começar, chame ela aqui, ex:
-        // iniciarJogo(); 
+    try {
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+    document.getElementById('connectionStatus').innerHTML = "✅ Firebase OK";
+    
+    // Checagem segura de login
+    if (firebase.auth) {
+        firebase.auth().onAuthStateChanged((user) => {
+            if (!user) {
+                window.location.href = "login.html"; 
+            } else {
+                console.log("Usuário logado!");
+            }
+        });
     } else {
-        console.log("Nenhum usuário logado. Indo para o login...");
-        // Altere 'login.html' para o nome exato da sua página de login
-        window.location.href = "login.html"; 
+        console.log("Aviso: O script do Firebase Auth não foi encontrado no topo do HTML.");
     }
-});
+
 } catch(e) {
+    console.error(e);
     document.getElementById('connectionStatus').innerHTML = "⚠️ Configure o Firebase";
 }
 
