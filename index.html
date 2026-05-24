@@ -747,8 +747,8 @@ const GROUND_FRAC=0.82;
 function GY(){return Math.floor(canvas.height*GROUND_FRAC);}
 const GRAV=0.50, JUMP_V=-13, ACC=0.85, MAX_SPD=6.5, FRIC=0.88;
 
-// ── ÁUDIO ──
-let AC=null,musicGain=null,playing=false,audioON=false,sIdx=0,sTim=null;
+// ── ÁUDIO (corrigido: AudioContext criado apenas após gesto do usuário) ──
+let AC=null,musicGain=null,sfxGain=null,playing=false,audioON=false,sIdx=0,sTim=null;
 const TEMPO=0.155;
 const SONG=[
   ["E5",1],["E5",1],["R",1],["E5",1],["R",1],["C5",1],["E5",1],
@@ -776,14 +776,85 @@ const SONG=[
 ];
 const NMAP={"C":-9,"C#":-8,"D":-7,"D#":-6,"E":-5,"F":-4,"F#":-3,"G":-2,"G#":-1,"A":0,"A#":1,"B":2};
 function nFreq(n){return 440*Math.pow(2,(NMAP[n.slice(0,-1)]+(+n.slice(-1)-4)*12)/12);}
-function initAC(){if(AC)return;AC=new(window.AudioContext||window.webkitAudioContext)();musicGain=AC.createGain();musicGain.gain.value=0.28;musicGain.connect(AC.destination);}
-function playNote(n,t,d){if(n==="R")return;const o=AC.createOscillator(),g=AC.createGain();o.type="square";o.frequency.value=nFreq(n)*0.65;g.gain.setValueAtTime(0.001,t);g.gain.exponentialRampToValueAtTime(0.22,t+0.01);g.gain.exponentialRampToValueAtTime(0.001,t+d);o.connect(g);g.connect(musicGain);o.start(t);o.stop(t+d);}
-function songTick(){if(!AC||!playing)return;if(sIdx>=SONG.length)sIdx=0;const[n,l]=SONG[sIdx++];playNote(n,AC.currentTime,TEMPO*l);sTim=setTimeout(songTick,TEMPO*l*1000);}
-function startMusic(){initAC();if(AC.state==='suspended')AC.resume();if(playing)return;playing=true;sIdx=0;songTick();}
-function sfx(freq,type,dur,vol){if(!AC||!audioON)return;const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.value=freq;g.gain.value=vol||0.22;o.connect(g);g.connect(AC.destination);o.start();g.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+dur);o.stop(AC.currentTime+dur);}
-function enableAudio(){if(audioON)return;audioON=true;startMusic();}
-document.body.addEventListener('touchstart',enableAudio,{once:true,passive:true});
-document.body.addEventListener('click',enableAudio,{once:true});
+
+function initAC(){
+  if(AC)return true;
+  try{
+    AC=new(window.AudioContext||window.webkitAudioContext)();
+    musicGain=AC.createGain(); musicGain.gain.value=0.25; musicGain.connect(AC.destination);
+    sfxGain=AC.createGain(); sfxGain.gain.value=0.30; sfxGain.connect(AC.destination);
+    return true;
+  }catch(e){return false;}
+}
+
+function resumeAC(){
+  if(AC&&AC.state==='suspended') AC.resume().catch(()=>{});
+}
+
+function playNote(n,t,d){
+  if(!AC||n==="R")return;
+  try{
+    const o=AC.createOscillator(),g=AC.createGain();
+    o.type="square"; o.frequency.value=nFreq(n)*0.65;
+    g.gain.setValueAtTime(0.001,t);
+    g.gain.exponentialRampToValueAtTime(0.20,t+0.01);
+    g.gain.exponentialRampToValueAtTime(0.001,t+d);
+    o.connect(g); g.connect(musicGain);
+    o.start(t); o.stop(t+d+0.05);
+  }catch(e){}
+}
+
+function songTick(){
+  if(!AC||!playing){return;}
+  resumeAC();
+  if(sIdx>=SONG.length)sIdx=0;
+  const[n,l]=SONG[sIdx++];
+  const dur=TEMPO*l;
+  playNote(n,AC.currentTime,dur);
+  sTim=setTimeout(songTick,dur*1000-10);
+}
+
+function startMusic(){
+  if(!initAC())return;
+  resumeAC();
+  if(playing)return;
+  playing=true; sIdx=0;
+  if(sTim){clearTimeout(sTim);sTim=null;}
+  songTick();
+}
+
+function stopMusic(){
+  playing=false;
+  if(sTim){clearTimeout(sTim);sTim=null;}
+}
+
+function sfx(freq,type,dur,vol){
+  if(!AC||!audioON)return;
+  try{
+    resumeAC();
+    const o=AC.createOscillator(),g=AC.createGain();
+    o.type=type||'sine'; o.frequency.value=freq;
+    const v=vol||0.20;
+    g.gain.setValueAtTime(v,AC.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+dur);
+    o.connect(g); g.connect(sfxGain);
+    o.start(AC.currentTime); o.stop(AC.currentTime+dur+0.05);
+  }catch(e){}
+}
+
+function enableAudio(){
+  if(audioON)return;
+  audioON=true;
+  startMusic();
+}
+
+// Ativar áudio no primeiro gesto (obrigatório nos navegadores modernos)
+['touchstart','touchend','mousedown','keydown'].forEach(ev=>{
+  document.addEventListener(ev, function _ae(){
+    document.removeEventListener(ev,_ae);
+    enableAudio();
+  },{once:true,passive:true});
+});
 
 // ── ESTADO ──
 let phase=1,score=0,coins=0,lives=33,att=3;
@@ -899,12 +970,71 @@ function lerpColor(c1,c2,t){
   return `rgb(${a[0]+((b[0]-a[0])*t)|0},${a[1]+((b[1]-a[1])*t)|0},${a[2]+((b[2]-a[2])*t)|0})`;
 }
 
-const SKY_COLORS={
-  dawn:  ['#04010f','#12054a','#2a0a7a','#6a10cc'],   // nebulosa violeta cósmica
-  day:   ['#020818','#060f30','#0a1848','#0f2268'],   // espaço profundo azul índigo
-  dusk:  ['#030110','#150535','#380a6a','#7a10cc'],   // galáxia roxo magenta
-  night: ['#010008','#040012','#080020','#0d0030'],   // cosmos escuro profundo
-};
+// Cenários por grupo de fases (6 biomas × fases rotativas)
+const BIOMES=[
+  { // 0: CAMPO VERDE
+    name:'Campo',
+    ground:['#4a7c2f','#2d5a1a','#1a3a0a'], groundTop:'#5a9c3a',
+    dawn:  ['#1a0a00','#8a3010','#e86030','#ffb060'],
+    day:   ['#87ceeb','#5ab0d8','#3a90c0','#70c8e8'],
+    dusk:  ['#1a0800','#7a2808','#cc5020','#ff9040'],
+    night: ['#020410','#060818','#0a1028','#0f1838'],
+    fogColor:'rgba(140,200,80,0.08)',
+    particleColors:['#90ff60','#60cc40','#ffff80','#80ff80'],
+  },
+  { // 1: FLORESTA
+    name:'Floresta',
+    ground:['#2d5a1a','#1a3a0a','#0d2005'], groundTop:'#3a7a20',
+    dawn:  ['#100a20','#3a2010','#7a5020','#c8a060'],
+    day:   ['#2a5a1a','#4a8a2a','#60a840','#88cc60'],
+    dusk:  ['#100810','#3a1828','#6a3040','#cc8060'],
+    night: ['#010308','#030810','#051018','#081820'],
+    fogColor:'rgba(60,120,40,0.12)',
+    particleColors:['#80ff40','#40cc20','#ffcc40','#60ff60'],
+  },
+  { // 2: DESERTO
+    name:'Deserto',
+    ground:['#c8a040','#a07820','#785008'], groundTop:'#e8c060',
+    dawn:  ['#1a0800','#8a3808','#e87038','#ffcc80'],
+    day:   ['#e8d090','#d8b858','#c89030','#ffeeaa'],
+    dusk:  ['#200808','#8a2808','#cc4818','#ff8840'],
+    night: ['#050208','#0a0510','#100818','#181028'],
+    fogColor:'rgba(220,180,80,0.10)',
+    particleColors:['#ffd060','#ffaa40','#ff8820','#ffe080'],
+  },
+  { // 3: NEVE
+    name:'Neve',
+    ground:['#c0d8f0','#a0c0e0','#7090b8'], groundTop:'#e0f0ff',
+    dawn:  ['#101828','#305878','#6090b8','#90c8e0'],
+    day:   ['#a8d0f0','#c0e0ff','#d8f0ff','#f0f8ff'],
+    dusk:  ['#180830','#3a1860','#7038a0','#c070d8'],
+    night: ['#020408','#040810','#081018','#0c1820'],
+    fogColor:'rgba(200,230,255,0.15)',
+    particleColors:['#ffffff','#c0e8ff','#a0c8f0','#e0f0ff'],
+  },
+  { // 4: VULCÃO
+    name:'Vulcão',
+    ground:['#4a1408','#2a0800','#180400'], groundTop:'#cc3010',
+    dawn:  ['#1a0400','#6a1800','#cc3808','#ff7820'],
+    day:   ['#3a0a00','#6a1808','#a82808','#e05018'],
+    dusk:  ['#1a0000','#580808','#a81010','#ff3818'],
+    night: ['#080000','#100400','#1a0800','#281000'],
+    fogColor:'rgba(200,60,20,0.12)',
+    particleColors:['#ff6020','#ff4000','#ff8840','#ffaa20'],
+  },
+  { // 5: OCEANO
+    name:'Oceano',
+    ground:['#1860a0','#0a4080','#062860'], groundTop:'#20a0e0',
+    dawn:  ['#100820','#2a2060','#5050a8','#90a0d8'],
+    day:   ['#2090d0','#40b0e8','#60d0ff','#80e8ff'],
+    dusk:  ['#100820','#382060','#7040a0','#e080c0'],
+    night: ['#020408','#040a18','#061028','#0a1838'],
+    fogColor:'rgba(40,160,220,0.10)',
+    particleColors:['#40d0ff','#20a8e0','#80eeff','#00c8ff'],
+  },
+];
+function getBiome(ph){return BIOMES[(ph-1)%BIOMES.length];}
+function getSkyColors(){const bm=getBiome(phase);return{dawn:bm.dawn,day:bm.day,dusk:bm.dusk,night:bm.night};}
 
 // ── BUILD FASE ──
 function buildPhase(ph){
@@ -967,20 +1097,17 @@ function buildPhase(ph){
     moonRocks.push({x:rnd()*worldW,r:4+rnd()*18,shade:rnd()});
   }
 
-  // ── PIRÂMIDES EGÍPCIAS escaláveis (degraus que o personagem pode subir) ──
+  // ── PIRÂMIDES / MONTANHAS escaláveis (degraus que o personagem pode subir) ──
   mountains=[];
   const mtCount=6+Math.floor(ph*.7);
-  const secretIdx=Math.floor(rnd()*mtCount);
   for(let m=0;m<mtCount;m++){
     const baseX=1400+m*(worldW/(mtCount+1));
     if(baseX>worldW-900)continue;
     const steps=4+Math.floor(rnd()*3);
     const bW=52+Math.floor(rnd()*2)*16;
-    const bH=28; // altura menor para degraus escaláveis (<=P.h/2)
-    const isSecret=(m===secretIdx);
+    const bH=28;
     const pyW=(steps*2+1)*bW;
-    // SEM paredes laterais — personagem pode entrar e sair livremente
-    // Degraus pirâmide: cada nível é uma plataforma de piso que sobressai
+    // Degraus da montanha — sem porta secreta
     for(let s=0;s<=steps;s++){
       const lx=baseX+(s*bW/2);
       const pw=pyW-(s*bW);
@@ -989,21 +1116,16 @@ function buildPhase(ph){
         const isTop2=(s===steps);
         plats.push({
           x:lx, y:py2, w:pw, h:bH,
-          color:isSecret?(isTop2?'#ffe066':'#c8960a'):(isTop2?'#d4c4a0':'#8b6914'),
+          color:isTop2?'#d4c4a0':'#8b6914',
           mario:true, mountain:true, isTop:isTop2, pyIdx:m,
-          stepH:bH // marcador para colisão suave
+          stepH:bH
         });
-        mountains.push({baseX,pyW,bH,steps,bW,isSecret,m});
+        mountains.push({baseX,pyW,bH,steps,bW,isSecret:false,m});
       }
     }
     // Moedas no topo
     const topLX=baseX+(steps*bW/2), topY2=GY_VAL-bH*(steps+1);
     for(let k=0;k<5;k++) coinsA.push({x:topLX+k*14,y:topY2-22,w:14,h:14,got:false});
-    // Porta secreta numa pirâmide aleatória
-    if(isSecret){
-      const dX=baseX+pyW-bW*.8, dW=34, dH=50;
-      plats.push({x:dX,y:GY_VAL-dH,w:dW,h:dH,secretDoor:true,pyIdx:m});
-    }
   }
 
   enems=[];
@@ -1077,7 +1199,8 @@ function updateUI(){
   document.getElementById('ui_att').textContent='🎲 '+att+'/3';
   const dp=getDayPhase();
   const icons={dawn:'🌅',day:'☀️',dusk:'🌇',night:'🌙'};
-  document.getElementById('ui_time').textContent=icons[dp.phase]+' '+(dp.phase==='day'?'DIA':dp.phase==='night'?'NOITE':dp.phase==='dawn'?'AMANHECER':'ANOITECER');
+  const bm=getBiome(phase);
+  document.getElementById('ui_time').textContent=icons[dp.phase]+' '+(dp.phase==='day'?'DIA':dp.phase==='night'?'NOITE':dp.phase==='dawn'?'AMANHECER':'ANOITECER')+' · '+bm.name;
 }
 
 // ── VIDA ──
@@ -1094,8 +1217,7 @@ function doCollide(e){
   let grounded=false;
   for(let i=0;i<plats.length;i++){
     const pl=plats[i];
-    // Porta secreta
-    if(pl.secretDoor){if(e===P&&e.x+e.w>pl.x&&e.x<pl.x+pl.w&&e.y+e.h>pl.y&&e.y<pl.y+pl.h){if(!sdActive){sdActive=true;triggerSecret();}}continue;}
+    if(pl.secretDoor)continue; // portas secretas removidas
     if(e.x+e.w>pl.x&&e.x<pl.x+pl.w){
       // Chão principal
       if(pl.lunar&&!pl.mario){
@@ -1564,84 +1686,87 @@ function update(){
 // ── RENDER ──
 function drawLunarGround(cx2){
   const W=canvas.width, GY_VAL=GY();
-  // Superfície cósmica — gradiente neon alienígena
+  const bm=getBiome(phase);
+  const gCols=bm.ground;
   plats.forEach(pl=>{
     const dx=pl.x-cx2;
     if(dx+pl.w<0||dx>W)return;
     if(pl.lunar&&!pl.mario){
       const g=ctx.createLinearGradient(0,pl.y,0,pl.y+pl.h);
-      g.addColorStop(0,'#2a1060'); g.addColorStop(0.25,'#1a0840'); g.addColorStop(1,'#080018');
+      g.addColorStop(0,gCols[0]); g.addColorStop(0.3,gCols[1]); g.addColorStop(1,gCols[2]||gCols[1]);
       ctx.fillStyle=g;
       ctx.fillRect(dx,pl.y,pl.w,pl.h);
-      // Borda superior neon
-      const ng=ctx.createLinearGradient(dx,pl.y,dx+pl.w,pl.y);
-      ng.addColorStop(0,'rgba(120,40,255,0.8)');
-      ng.addColorStop(0.5,'rgba(180,80,255,0.9)');
-      ng.addColorStop(1,'rgba(80,160,255,0.7)');
-      ctx.fillStyle=ng;
-      ctx.fillRect(dx,pl.y,pl.w,2);
-      // Linha de energia pulsante
-      const pt=Date.now()*0.003;
-      ctx.strokeStyle=`rgba(140,60,255,${0.3+Math.sin(pt+dx*0.01)*0.2})`;
+      // Borda superior (cor do bioma)
+      ctx.fillStyle=bm.groundTop||gCols[0];
+      ctx.fillRect(dx,pl.y,pl.w,3);
+      // Linha de detalhe sutil
+      const pt=Date.now()*0.002;
+      ctx.strokeStyle=`rgba(255,255,255,${0.08+Math.sin(pt+dx*0.01)*0.04})`;
       ctx.lineWidth=1;
-      ctx.beginPath(); ctx.moveTo(dx,pl.y+6); ctx.lineTo(dx+pl.w,pl.y+6); ctx.stroke();
-      // Pó cósmico brilhante
-      ctx.fillStyle='rgba(160,120,255,0.1)';
-      for(let i=0;i<pl.w;i+=18){
-        ctx.beginPath(); ctx.arc(dx+i+9,pl.y+4,2,0,Math.PI*2); ctx.fill();
-      }
+      ctx.beginPath(); ctx.moveTo(dx,pl.y+7); ctx.lineTo(dx+pl.w,pl.y+7); ctx.stroke();
     }
   });
-  // Pedras cósmicas
+  // Pedras/decorações do terreno (cor por bioma)
+  const rockColors=[
+    [[120,100,70],[70,55,40]],   // Campo: pedra marrom
+    [[60,80,40],[30,50,20]],     // Floresta: pedra esverdeada
+    [[180,150,80],[140,110,50]], // Deserto: pedra dourada
+    [[130,160,190],[90,120,160]],// Neve: pedra azulada
+    [[100,40,20],[60,20,10]],    // Vulcão: rocha vulcânica
+    [[30,80,140],[20,60,100]],   // Oceano: pedra azul
+  ];
+  const biomeIdx2=(phase-1)%BIOMES.length;
+  const rk=rockColors[biomeIdx2];
   moonRocks.forEach(r=>{
     const rx=r.x-cx2;
     if(rx<-40||rx>W+40)return;
-    const shade=0.3+r.shade*0.5;
+    const shade=0.4+r.shade*0.5;
+    const c1=rk[0], c2=rk[1];
     const rg=ctx.createRadialGradient(rx-r.r*0.2,GY_VAL-r.r*0.5,0,rx,GY_VAL-r.r*0.4,r.r);
-    rg.addColorStop(0,`rgba(120,80,220,${shade*0.8})`);
-    rg.addColorStop(1,`rgba(40,20,80,${shade*0.3})`);
+    rg.addColorStop(0,`rgba(${c1[0]},${c1[1]},${c1[2]},${Math.min(1,shade*0.85).toFixed(3)})`);
+    rg.addColorStop(1,`rgba(${c2[0]},${c2[1]},${c2[2]},${Math.min(1,shade*0.35).toFixed(3)})`);
     ctx.fillStyle=rg;
     ctx.beginPath(); ctx.ellipse(rx,GY_VAL-r.r*0.4,r.r,r.r*0.55,0,0,Math.PI*2); ctx.fill();
-    // Reflexo topo
-    ctx.fillStyle=`rgba(180,140,255,${shade*0.4})`;
-    ctx.beginPath(); ctx.ellipse(rx-r.r*0.2,GY_VAL-r.r*0.6,r.r*0.28,r.r*0.16,0,0,Math.PI*2); ctx.fill();
   });
 }
 
 function drawMarioPlatform(dx,pl){
   const pw=pl.w, ph2=pl.h;
-  const col=pl.coin?'#8b6014':(pl.mountain?'#1a0840':pl.color||'#1a0848');
-  // Bloco principal com gradiente cósmico
+  const bm=getBiome(phase);
+  // Cor da plataforma baseada no bioma
+  const platPalettes=[
+    ['#5a3010','#3a1a08','#7c4a20'],  // Campo: madeira
+    ['#2a4a10','#1a3008','#3a6018'],  // Floresta: tronco
+    ['#a07820','#785008','#c89030'],  // Deserto: arenito
+    ['#6080a0','#405870','#80a0c0'],  // Neve: gelo
+    ['#6a1a08','#3a0800','#aa3010'],  // Vulcão: rocha escura
+    ['#1a5080','#0a3060','#2070a8'],  // Oceano: pedra marinha
+  ];
+  const biomeIdx=(phase-1)%BIOMES.length;
+  const bPal=platPalettes[biomeIdx];
+  const col=pl.coin?'#8b6014':(pl.mountain?bPal[0]:bPal[1]);
   const pg=ctx.createLinearGradient(dx,pl.y,dx,pl.y+ph2);
   if(pl.mountain){
-    // Pirâmide: dourado alienígena
-    const baseCol=pl.color||'#8b6914';
+    // Pirâmide: cor do bioma dourado/pedra
+    const baseCol=pl.color||bPal[0];
     pg.addColorStop(0,baseCol);
-    pg.addColorStop(0.5,pl.isTop?'#ffe080':'#6a4810');
-    pg.addColorStop(1,'#3a2208');
+    pg.addColorStop(0.5,pl.isTop?'#ffe080':bPal[2]);
+    pg.addColorStop(1,bPal[1]);
   } else if(pl.coin){
     pg.addColorStop(0,'#c8900a'); pg.addColorStop(0.5,'#b8860b'); pg.addColorStop(1,'#7a5000');
   } else {
-    // Plataforma galáctica
-    pg.addColorStop(0,'#2a1060'); pg.addColorStop(0.5,pl.color||'#1a0848'); pg.addColorStop(1,'#0a0420');
+    pg.addColorStop(0,bPal[2]); pg.addColorStop(0.5,bPal[0]); pg.addColorStop(1,bPal[1]);
   }
   ctx.fillStyle=pg;
   ctx.fillRect(dx,pl.y,pw,ph2);
-  // Borda superior neon
-  if(pl.mountain){
-    ctx.fillStyle='rgba(255,200,80,0.6)';
-  } else {
-    ctx.fillStyle='rgba(140,80,255,0.7)';
-  }
+  // Borda superior
+  ctx.fillStyle=pl.mountain?'rgba(255,220,100,0.5)':'rgba(255,255,255,0.25)';
   ctx.fillRect(dx,pl.y,pw,2);
-  // Borda esquerda brilhante
-  ctx.fillStyle='rgba(255,255,255,0.15)';
+  ctx.fillStyle='rgba(255,255,255,0.10)';
   ctx.fillRect(dx,pl.y,2,ph2);
-  // Sombra inferior escura
-  ctx.fillStyle='rgba(0,0,0,0.5)';
+  ctx.fillStyle='rgba(0,0,0,0.35)';
   ctx.fillRect(dx,pl.y+ph2-2,pw,2);
   ctx.fillRect(dx+pw-2,pl.y,2,ph2);
-  // Padrão de blocos ou símbolo
   if(pl.coin){
     ctx.fillStyle='#fff';
     ctx.font=`bold ${ph2+4}px monospace`;
@@ -1649,9 +1774,9 @@ function drawMarioPlatform(dx,pl){
     ctx.fillText(pl._hit?'':'?',dx+pw/2,pl.y+ph2-2);
     ctx.textAlign='left';
   } else if(!pl.mountain){
-    // Grid de energia
-    ctx.strokeStyle='rgba(100,60,200,0.2)'; ctx.lineWidth=1;
-    for(let bx=dx;bx<dx+pw;bx+=16){
+    // Linhas de tijolo/madeira horizontais
+    ctx.strokeStyle='rgba(0,0,0,0.18)'; ctx.lineWidth=1;
+    for(let bx=dx;bx<dx+pw;bx+=18){
       ctx.beginPath(); ctx.moveTo(bx,pl.y); ctx.lineTo(bx,pl.y+ph2); ctx.stroke();
     }
   }
@@ -1788,17 +1913,6 @@ function drawMountainBg(cx2){
       // brilho topo
       ctx.fillStyle=`rgba(255,255,200,${.05+s*.012})`;ctx.fillRect(lx2,py2,pw2,3);
     }
-    // Portal secreto
-    if(isSecret){
-      const dX=bx+pyW-bW*.8, dW=34, dH=50, gA=.5+Math.sin(now_)*.3;
-      ctx.fillStyle=`rgba(0,200,255,${gA*.28})`;ctx.fillRect(dX-6,GY_VAL-dH-6,dW+12,dH+6);
-      const pg=ctx.createLinearGradient(dX,GY_VAL-dH,dX,GY_VAL);
-      pg.addColorStop(0,'rgba(0,200,255,.95)');pg.addColorStop(.5,'rgba(100,0,255,.85)');pg.addColorStop(1,'rgba(0,50,150,.7)');
-      ctx.fillStyle=pg;ctx.fillRect(dX,GY_VAL-dH,dW,dH);
-      ctx.fillStyle=`rgba(255,255,255,${gA})`;ctx.font='bold 9px monospace';ctx.textAlign='center';
-      ctx.fillText('🌀',dX+dW/2,GY_VAL-dH/2+4);ctx.fillText('SECRETA',dX+dW/2,GY_VAL-7);
-      for(let sp=0;sp<5;sp++){const ag=now_+sp*1.26;ctx.fillStyle=`rgba(255,220,0,${.5+Math.sin(ag)*.35})`;ctx.beginPath();ctx.arc(dX+dW/2+Math.cos(ag)*22,GY_VAL-dH/2+Math.sin(ag)*22,3,0,Math.PI*2);ctx.fill();}
-    }
     // Estrela topo
     const topLX=bx+(steps*bW/2), topW=pyW-(steps*bW), topY3=GY_VAL-bH*(steps+1);
     ctx.fillStyle=`rgba(255,215,0,${.7+Math.sin(now_*.8)*.3})`;
@@ -1812,7 +1926,8 @@ function render(){
   const cx2=camX;
   const dp=getDayPhase();
 
-  // === FUNDO — ciclo dia/noite ===
+  // === FUNDO — ciclo dia/noite (cenário por bioma) ===
+  const SKY_COLORS=getSkyColors();
   const sc=SKY_COLORS[dp.phase];
   const bg=ctx.createLinearGradient(0,0,0,H);
   if(dp.phase==='dawn'||dp.phase==='dusk'){
@@ -1860,148 +1975,143 @@ function render(){
     ctx.restore();
   });
 
-  // Nebulosa de fundo (sempre visível, muda de cor por fase)
+  // Nebulosa / decoração de fundo (cor muda por bioma)
   {
     const nbT=Date.now()*0.00015;
-    const nbColors=[
-      ['rgba(80,0,160,','rgba(0,40,180,'],
-      ['rgba(120,0,80,','rgba(60,0,140,'],
-      ['rgba(0,60,180,','rgba(40,0,120,'],
-    ];
-    const nbc=nbColors[phase%nbColors.length];
+    const bm=getBiome(phase);
+    const biomeIdx=(phase-1)%BIOMES.length;
+    // Nuvens/névoas adaptadas ao bioma
+    const nbOpacity=[0.18,0.14,0.12,0.20,0.10,0.15][biomeIdx];
+    // Cores RGBA da névoa por bioma (r,g,b)
+    const nbRGBs=[
+      [[100,180,60],[60,140,40]],   // Campo
+      [[40,100,20],[20,60,10]],     // Floresta
+      [[200,150,40],[160,100,20]],  // Deserto
+      [[160,200,240],[100,160,210]],// Neve
+      [[180,60,20],[120,30,10]],    // Vulcão
+      [[20,100,180],[10,60,140]],   // Oceano
+    ][biomeIdx];
     ctx.save();
-    for(let nb=0;nb<4;nb++){
-      const nx=W*(0.1+nb*0.28)+Math.sin(nbT+nb*1.4)*60;
-      const ny=H*(0.08+nb%2*0.18)+Math.cos(nbT*0.7+nb)*30;
-      const nr=120+nb*40+Math.sin(nbT*0.5+nb)*30;
+    for(let nb=0;nb<3;nb++){
+      const nx=W*(0.12+nb*0.35)+Math.sin(nbT+nb*1.4)*40;
+      const ny=H*(0.10+nb%2*0.20)+Math.cos(nbT*0.6+nb)*20;
+      const nr=100+nb*30+Math.sin(nbT*0.4+nb)*20;
       const ng=ctx.createRadialGradient(nx,ny,0,nx,ny,nr);
-      ng.addColorStop(0,nbc[nb%2]+'0.22)');
-      ng.addColorStop(0.6,nbc[(nb+1)%2]+'0.08)');
+      const c0=nbRGBs[nb%2], c1=nbRGBs[(nb+1)%2];
+      const a0=+nbOpacity.toFixed(3), a1=+(nbOpacity*0.4).toFixed(3);
+      ng.addColorStop(0,`rgba(${c0[0]},${c0[1]},${c0[2]},${a0})`);
+      ng.addColorStop(0.6,`rgba(${c1[0]},${c1[1]},${c1[2]},${a1})`);
       ng.addColorStop(1,'rgba(0,0,0,0)');
       ctx.fillStyle=ng; ctx.beginPath(); ctx.arc(nx,ny,nr,0,Math.PI*2); ctx.fill();
     }
     ctx.restore();
   }
 
-  // Sol intergalático / Portal dimensional (dia/amanhecer/anoitecer)
-  if(dp.phase==='day'||dp.phase==='dawn'||dp.phase==='dusk'){
-    const sunX=W*0.75, sunY=62, now_=Date.now()*0.001;
-    ctx.save();
-    // Anéis de energia
-    for(let ri=3;ri>0;ri--){
-      const rSz=28+ri*22+Math.sin(now_+ri)*8;
-      const rA=0.06-ri*0.012;
-      const rg=ctx.createRadialGradient(sunX,sunY,rSz-6,sunX,sunY,rSz);
-      rg.addColorStop(0,`rgba(140,60,255,0)`);
-      rg.addColorStop(0.5,`rgba(180,80,255,${rA})`);
-      rg.addColorStop(1,`rgba(80,160,255,0)`);
-      ctx.fillStyle=rg; ctx.beginPath(); ctx.arc(sunX,sunY,rSz,0,Math.PI*2); ctx.fill();
-    }
-    // Núcleo brilhante
-    const sunG=ctx.createRadialGradient(sunX-8,sunY-8,0,sunX,sunY,40);
-    sunG.addColorStop(0,'#ffffff');
-    sunG.addColorStop(0.2,'#e0c8ff');
-    sunG.addColorStop(0.6,'#8040ff');
-    sunG.addColorStop(1,'rgba(40,0,120,0)');
-    ctx.fillStyle=sunG; ctx.beginPath(); ctx.arc(sunX,sunY,40,0,Math.PI*2); ctx.fill();
-    // Raios de energia
-    ctx.strokeStyle='rgba(180,100,255,0.25)'; ctx.lineWidth=1.5;
-    for(let r=0;r<8;r++){
-      const ang=now_*0.5+r*Math.PI/4;
-      const r1=44, r2=62+Math.sin(now_+r)*10;
-      ctx.beginPath();
-      ctx.moveTo(sunX+Math.cos(ang)*r1,sunY+Math.sin(ang)*r1);
-      ctx.lineTo(sunX+Math.cos(ang)*r2,sunY+Math.sin(ang)*r2);
-      ctx.stroke();
-    }
-    ctx.restore();
-  } else {
-    // Lua cósmica com crateras e halo
-    const moonX=W*0.8,moonY=55,now_=Date.now()*0.0008;
-    ctx.save();
-    // Halo da lua
-    const hg=ctx.createRadialGradient(moonX,moonY,22,moonX,moonY,55);
-    hg.addColorStop(0,'rgba(180,160,255,0.15)');
-    hg.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle=hg; ctx.beginPath(); ctx.arc(moonX,moonY,55,0,Math.PI*2); ctx.fill();
-    // Corpo lunar com gradiente
-    const mg=ctx.createRadialGradient(moonX-6,moonY-6,2,moonX,moonY,26);
-    mg.addColorStop(0,'#f0eeff'); mg.addColorStop(0.6,'#c8c0e8'); mg.addColorStop(1,'#9080c0');
-    ctx.fillStyle=mg; ctx.beginPath(); ctx.arc(moonX,moonY,26,0,Math.PI*2); ctx.fill();
-    // Sombra
-    ctx.fillStyle='rgba(0,0,40,0.18)'; ctx.beginPath(); ctx.arc(moonX+8,moonY-4,20,0,Math.PI*2); ctx.fill();
-    // Crateras
-    [{x:-9,y:5,r:4},{x:6,y:-8,r:3},{x:2,y:10,r:2.5}].forEach(c=>{
-      ctx.fillStyle='rgba(100,90,160,0.5)';
-      ctx.beginPath(); ctx.arc(moonX+c.x,moonY+c.y,c.r,0,Math.PI*2); ctx.fill();
-    });
-    ctx.restore();
-  }
-
-  // Galáxia espiral ao fundo (parallax suave)
+  // Sol / Lua natural (adaptado ao bioma)
   {
-    const gxT=Date.now()*0.0002;
-    const gxX=W*0.2-cx2*0.03;
-    const gxY=H*0.35;
-    if(gxX>-200&&gxX<W+200){
-      ctx.save(); ctx.globalAlpha=0.12;
-      ctx.translate(gxX,gxY); ctx.rotate(gxT*0.08);
-      for(let arm=0;arm<3;arm++){
-        ctx.rotate(Math.PI*2/3);
-        for(let p=0;p<40;p++){
-          const d=p*3.5, ang=p*0.22;
-          const px2=Math.cos(ang)*d, py2=Math.sin(ang)*d;
-          const sz=Math.max(0.5,3-p*0.06);
-          ctx.fillStyle=`rgba(180,140,255,${0.8-p*0.018})`;
-          ctx.beginPath(); ctx.arc(px2,py2,sz,0,Math.PI*2); ctx.fill();
-        }
+    const biomeIdx=(phase-1)%BIOMES.length;
+    const now_=Date.now()*0.001;
+    if(dp.phase==='day'||dp.phase==='dawn'||dp.phase==='dusk'){
+      const sunX=W*0.75, sunY=58;
+      ctx.save();
+      // Brilho externo suave
+      const halo=ctx.createRadialGradient(sunX,sunY,20,sunX,sunY,80);
+      // Cores do sol por bioma
+      const sunColors=[
+        ['rgba(255,230,80,0.15)','rgba(255,200,40,0)'],   // Campo
+        ['rgba(200,230,80,0.12)','rgba(120,180,0,0)'],    // Floresta
+        ['rgba(255,200,80,0.20)','rgba(255,150,0,0)'],    // Deserto
+        ['rgba(200,220,255,0.15)','rgba(150,200,255,0)'], // Neve
+        ['rgba(255,120,0,0.20)','rgba(200,60,0,0)'],      // Vulcão
+        ['rgba(120,200,255,0.15)','rgba(60,150,220,0)'],  // Oceano
+      ][biomeIdx];
+      halo.addColorStop(0,sunColors[0]); halo.addColorStop(1,sunColors[1]);
+      ctx.fillStyle=halo; ctx.beginPath(); ctx.arc(sunX,sunY,80,0,Math.PI*2); ctx.fill();
+      // Núcleo do sol
+      const sunCore=['#fff7a0','#aaff88','#ffe060','#e8f4ff','#ffaa40','#aadfff'][biomeIdx];
+      const sunMid=['#ffd700','#88cc44','#ffaa00','#c8e0ff','#ff5500','#40b0ff'][biomeIdx];
+      const sg=ctx.createRadialGradient(sunX-6,sunY-6,2,sunX,sunY,32);
+      sg.addColorStop(0,'#ffffff'); sg.addColorStop(0.3,sunCore); sg.addColorStop(1,sunMid);
+      ctx.fillStyle=sg; ctx.beginPath(); ctx.arc(sunX,sunY,32,0,Math.PI*2); ctx.fill();
+      // Raios simples
+      ctx.strokeStyle=sunMid+'88'; ctx.lineWidth=2;
+      for(let r=0;r<8;r++){
+        const ang=now_*0.3+r*Math.PI/4;
+        ctx.beginPath();
+        ctx.moveTo(sunX+Math.cos(ang)*35,sunY+Math.sin(ang)*35);
+        ctx.lineTo(sunX+Math.cos(ang)*(48+Math.sin(now_+r)*5),sunY+Math.sin(ang)*(48+Math.sin(now_+r)*5));
+        ctx.stroke();
       }
+      ctx.restore();
+    } else {
+      // Lua natural com crateras
+      const moonX=W*0.8, moonY=52;
+      ctx.save();
+      const hg=ctx.createRadialGradient(moonX,moonY,18,moonX,moonY,50);
+      hg.addColorStop(0,'rgba(220,210,255,0.12)'); hg.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=hg; ctx.beginPath(); ctx.arc(moonX,moonY,50,0,Math.PI*2); ctx.fill();
+      const mg=ctx.createRadialGradient(moonX-5,moonY-5,2,moonX,moonY,22);
+      mg.addColorStop(0,'#f0f0e0'); mg.addColorStop(0.6,'#d0ccc0'); mg.addColorStop(1,'#a09890');
+      ctx.fillStyle=mg; ctx.beginPath(); ctx.arc(moonX,moonY,22,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='rgba(0,0,0,0.15)'; ctx.beginPath(); ctx.arc(moonX+7,moonY-3,17,0,Math.PI*2); ctx.fill();
+      [{x:-8,y:4,r:3.5},{x:5,y:-7,r:2.5},{x:2,y:9,r:2}].forEach(c=>{
+        ctx.fillStyle='rgba(100,95,90,0.45)';
+        ctx.beginPath(); ctx.arc(moonX+c.x,moonY+c.y,c.r,0,Math.PI*2); ctx.fill();
+      });
       ctx.restore();
     }
   }
 
-  // Planeta (parallax) — só visível à noite e transições
+  // Planeta decorativo (visível à noite / transições)
   const planetVis=dp.phase==='night'?1:dp.phase==='dawn'?(1-dp.t):dp.phase==='dusk'?dp.t:0;
   if(planetVis>0.05){
     const px2=planet.x-cx2*0.05;
     if(px2+planet.r+20>0&&px2-planet.r-20<W){
-      ctx.save(); ctx.globalAlpha=planetVis;
+      ctx.save(); ctx.globalAlpha=planetVis*0.85;
       const pg=ctx.createRadialGradient(px2-planet.r/3,planet.y-planet.r/3,planet.r/12,px2,planet.y,planet.r);
-      pg.addColorStop(0,planet.c1); pg.addColorStop(0.8,planet.c2); pg.addColorStop(1,'#020105');
+      pg.addColorStop(0,planet.c1); pg.addColorStop(0.8,planet.c2); pg.addColorStop(1,'rgba(0,0,0,0)');
       ctx.fillStyle=pg; ctx.beginPath(); ctx.arc(px2,planet.y,planet.r,0,Math.PI*2); ctx.fill();
       if(planet.ring){
-        ctx.strokeStyle='rgba(230,180,255,0.38)'; ctx.lineWidth=7;
-        ctx.save(); ctx.translate(px2,planet.y); ctx.rotate(-0.25); ctx.scale(2,0.3);
-        ctx.beginPath(); ctx.arc(0,0,planet.r+18,0,Math.PI*2); ctx.stroke(); ctx.restore();
+        ctx.strokeStyle='rgba(220,180,255,0.30)'; ctx.lineWidth=6;
+        ctx.save(); ctx.translate(px2,planet.y); ctx.rotate(-0.22); ctx.scale(2,0.28);
+        ctx.beginPath(); ctx.arc(0,0,planet.r+16,0,Math.PI*2); ctx.stroke(); ctx.restore();
       }
       ctx.restore();
     }
   }
 
-  // Montanhas cósmicas — silhueta alienígena com gradiente nebulosa
-  const mtAlpha=dp.phase==='dawn'?dp.t:dp.phase==='dusk'?1-dp.t*0.3:1;
-  ctx.save(); ctx.globalAlpha=mtAlpha;
-  // Camada de fundo (mais distante, mais azul)
-  for(let i=0;i<10;i++){
-    const mx=(i*310)-(cx2*0.06)%1240;
-    const mg2=ctx.createLinearGradient(mx,GY_VAL-30,mx+110,GY_VAL-180);
-    mg2.addColorStop(0,'#120828'); mg2.addColorStop(1,'#1a0d45');
-    ctx.fillStyle=mg2;
-    ctx.beginPath(); ctx.moveTo(mx,GY_VAL-30); ctx.lineTo(mx+55,GY_VAL-180); ctx.lineTo(mx+110,GY_VAL-30); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(mx+80,GY_VAL-30); ctx.lineTo(mx+135,GY_VAL-120); ctx.lineTo(mx+190,GY_VAL-30); ctx.fill();
+  // Montanhas de fundo (silhueta por bioma)
+  {
+    const biomeIdx=(phase-1)%BIOMES.length;
+    const now_=Date.now()*0.0005;
+    const mtAlpha=0.55+Math.sin(now_)*0.05;
+    ctx.save(); ctx.globalAlpha=mtAlpha;
+    // Cores das montanhas por bioma
+    const mtFar=[
+      '#8aaa70','#2a5010','#c8a840','#8ab0d0','#5a1808','#1060a0'
+    ][biomeIdx];
+    const mtNear=[
+      '#6a8850','#1a3a08','#a88030','#607890','#3a0c06','#0a4880'
+    ][biomeIdx];
+    // Camada distante
+    for(let i=0;i<9;i++){
+      const mx=(i*320)-(cx2*0.06)%1280;
+      ctx.fillStyle=mtFar;
+      ctx.beginPath(); ctx.moveTo(mx,GY_VAL-20); ctx.lineTo(mx+60,GY_VAL-160); ctx.lineTo(mx+120,GY_VAL-20); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(mx+90,GY_VAL-20); ctx.lineTo(mx+145,GY_VAL-110); ctx.lineTo(mx+200,GY_VAL-20); ctx.fill();
+      // Topos: neve só no bioma neve/vulcão, senão herba/rocha
+      const topColor=['rgba(255,255,255,0.3)','rgba(200,255,120,0.2)','rgba(255,230,80,0.2)','rgba(240,248,255,0.5)','rgba(255,80,30,0.25)','rgba(100,200,255,0.2)'][biomeIdx];
+      ctx.fillStyle=topColor;
+      ctx.beginPath(); ctx.moveTo(mx+48,GY_VAL-148); ctx.lineTo(mx+60,GY_VAL-160); ctx.lineTo(mx+72,GY_VAL-148); ctx.fill();
+    }
+    // Camada próxima
+    for(let i=0;i<7;i++){
+      const mx=(i*280+140)-(cx2*0.12)%1120;
+      ctx.fillStyle=mtNear;
+      ctx.beginPath(); ctx.moveTo(mx,GY_VAL-20); ctx.lineTo(mx+55,GY_VAL-135); ctx.lineTo(mx+110,GY_VAL-20); ctx.fill();
+    }
+    ctx.restore();
   }
-  // Camada de frente (mais perto, mais escura/roxa)
-  for(let i=0;i<8;i++){
-    const mx=(i*280+140)-(cx2*0.12)%1120;
-    const mg3=ctx.createLinearGradient(mx,GY_VAL-30,mx+100,GY_VAL-140);
-    mg3.addColorStop(0,'#0a051a'); mg3.addColorStop(1,'#1e0840');
-    ctx.fillStyle=mg3;
-    ctx.beginPath(); ctx.moveTo(mx,GY_VAL-30); ctx.lineTo(mx+50,GY_VAL-140); ctx.lineTo(mx+100,GY_VAL-30); ctx.fill();
-    // Brilho do topo (cristal alienígena)
-    ctx.fillStyle='rgba(160,80,255,0.18)';
-    ctx.beginPath(); ctx.moveTo(mx+36,GY_VAL-128); ctx.lineTo(mx+50,GY_VAL-140); ctx.lineTo(mx+64,GY_VAL-128); ctx.fill();
-  }
-  ctx.restore();
 
   // === CHÃO LUNAR ===
   drawLunarGround(cx2);
@@ -2165,54 +2275,53 @@ function render(){
     ctx.restore();
   }
 
-  // === AURORA CÓSMICA (sempre visível, mais intensa à noite) ===
-  {
-    const auroraAlpha=(dp.phase==='night'?0.28:dp.phase==='day'?0.08:0.18);
-    const auroraColors=['rgba(0,255,200,','rgba(100,60,255,','rgba(255,0,200,','rgba(0,160,255,'];
-    ctx.save(); ctx.globalAlpha=auroraAlpha;
-    for(let a=0;a<4;a++){
-      const ax=W*0.08+a*W*0.24;
-      const aw=W*0.18;
-      const ag=ctx.createLinearGradient(ax,0,ax,H*0.5);
-      ag.addColorStop(0,auroraColors[a]+'0)');
-      ag.addColorStop(0.25,auroraColors[a]+'0.8)');
-      ag.addColorStop(0.7,auroraColors[(a+1)%4]+'0.4)');
-      ag.addColorStop(1,auroraColors[a]+'0)');
-      ctx.fillStyle=ag;
-      ctx.beginPath();
-      const wave=Math.sin(Date.now()*0.0005+a*1.3)*22;
-      const wave2=Math.sin(Date.now()*0.0003+a*0.9)*16;
-      ctx.moveTo(ax+wave,0);
-      ctx.quadraticCurveTo(ax+aw/2+wave2,H*0.28,ax+aw+wave,0);
-      ctx.lineTo(ax+aw+wave,H*0.5);
-      ctx.quadraticCurveTo(ax+aw/2+wave2,H*0.35,ax+wave,H*0.5);
-      ctx.closePath(); ctx.fill();
+  // === VENTO (linhas sutis horizontais, sempre visíveis durante o dia) ===
+  if(dp.phase==='day'||dp.phase==='dawn'){
+    const wt=Date.now()*0.003;
+    ctx.save(); ctx.globalAlpha=0.12;
+    ctx.strokeStyle='rgba(255,255,255,0.5)'; ctx.lineWidth=1;
+    for(let wi=0;wi<6;wi++){
+      const wy=GY_VAL*0.2+wi*(GY_VAL*0.13);
+      const wx=(wt*80+wi*300)%W;
+      const wlen=40+Math.sin(wt+wi*2)*20;
+      ctx.beginPath(); ctx.moveTo(wx,wy); ctx.lineTo(wx+wlen,wy); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo((wx+wlen*0.5)%W,wy+8); ctx.lineTo((wx+wlen*1.2)%W,wy+8); ctx.stroke();
     }
     ctx.restore();
   }
 
-  // === NÉVOA CÓSMICA NO CHÃO (sempre presente) ===
+  // === NÉVOA DO CHÃO (por bioma) ===
   {
-    const fogA=0.12+Math.sin(Date.now()*0.0008)*0.05;
-    const fg=ctx.createLinearGradient(0,GY_VAL-50,0,GY_VAL+20);
-    fg.addColorStop(0,'rgba(80,20,160,0)');
-    fg.addColorStop(0.5,`rgba(100,40,200,${fogA})`);
-    fg.addColorStop(1,'rgba(40,0,80,0)');
-    ctx.fillStyle=fg; ctx.fillRect(0,GY_VAL-50,W,70);
+    const biomeIdx=(phase-1)%BIOMES.length;
+    const fogA=+(0.10+Math.sin(Date.now()*0.0007)*0.04).toFixed(3);
+    // Cores RGB da névoa por bioma (sem manipulação de string)
+    const fogRGBs=[
+      [140,200,80],[60,120,40],[220,180,80],
+      [200,230,255],[200,60,20],[40,160,220]
+    ];
+    const fc=fogRGBs[biomeIdx];
+    const fg=ctx.createLinearGradient(0,GY_VAL-55,0,GY_VAL+15);
+    fg.addColorStop(0,`rgba(${fc[0]},${fc[1]},${fc[2]},0)`);
+    fg.addColorStop(0.5,`rgba(${fc[0]},${fc[1]},${fc[2]},${fogA})`);
+    fg.addColorStop(1,`rgba(${fc[0]},${fc[1]},${fc[2]},0)`);
+    ctx.fillStyle=fg;
+    ctx.fillRect(0,GY_VAL-55,W,70);
   }
 
-  // === PARTÍCULAS CÓSMICAS FLUTUANTES ===
-  const dustT=Date.now()*0.001;
-  ctx.save(); ctx.globalAlpha=0.28;
-  const dustColors=['#c080ff','#80c0ff','#ff80ff','#80ffcc','#ffcc80'];
-  for(let d=0;d<18;d++){
-    const dx2=(Math.sin(dustT*0.38+d*1.72)*0.5+0.5)*W;
-    const dy2=GY_VAL-10-Math.abs(Math.sin(dustT*0.55+d*2.1))*38;
-    const dc=dustColors[d%dustColors.length];
-    ctx.fillStyle=dc;
-    ctx.beginPath(); ctx.arc(dx2,dy2,1.4+Math.sin(d*1.3)*0.8,0,Math.PI*2); ctx.fill();
+  // === PARTÍCULAS FLUTUANTES (por bioma) ===
+  {
+    const bm=getBiome(phase);
+    const dustT=Date.now()*0.001;
+    ctx.save(); ctx.globalAlpha=0.22;
+    for(let d=0;d<12;d++){
+      const dx2=(Math.sin(dustT*0.35+d*1.8)*0.5+0.5)*W;
+      const dy2=GY_VAL-12-Math.abs(Math.sin(dustT*0.5+d*2.0))*32;
+      const dc=bm.particleColors[d%bm.particleColors.length];
+      ctx.fillStyle=dc;
+      ctx.beginPath(); ctx.arc(dx2,dy2,1.2+Math.sin(d*1.4)*0.7,0,Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
   }
-  ctx.restore();
 
   // ═══ MINI-MAPA: barra de progresso com posição dos jogadores ═══
   const barW=Math.min(W-80,320), barH=12;
