@@ -900,10 +900,10 @@ function lerpColor(c1,c2,t){
 }
 
 const SKY_COLORS={
-  dawn:  ['#0d0520','#6b1a3a','#ff7040','#ffbb70'],   // céu roxo→laranja→amarelado
-  day:   ['#3a9ad9','#5bc0f0','#87ceeb','#b0e4ff'],   // azul real de dia
-  dusk:  ['#1a0830','#7a2a0a','#ff5520','#ffaa50'],   // laranja/vermelho anoitecer
-  night: ['#03020c','#0b061a','#0f0420','#170826'],   // escuro estrelado
+  dawn:  ['#04010f','#12054a','#2a0a7a','#6a10cc'],   // nebulosa violeta cósmica
+  day:   ['#020818','#060f30','#0a1848','#0f2268'],   // espaço profundo azul índigo
+  dusk:  ['#030110','#150535','#380a6a','#7a10cc'],   // galáxia roxo magenta
+  night: ['#010008','#040012','#080020','#0d0030'],   // cosmos escuro profundo
 };
 
 // ── BUILD FASE ──
@@ -914,7 +914,11 @@ function buildPhase(ph){
   const COLS=[["#4a90d9","#1a407a"],["#ff6b6b","#8b0000"],["#e066ff","#5d008b"],["#3ae3b5","#0a5c43"],["#ffb347","#b85300"]];
   const c=COLS[ph%COLS.length];
   planet={x:200+rnd()*400,y:40+rnd()*90,r:70+rnd()*70,c1:c[0],c2:c[1],ring:ph%2===0};
-  stars=Array.from({length:200},()=>({x:rnd()*1800,y:rnd()*canvas.height*0.75,s:rnd()*2.5+0.5,a:rnd(),sp:0.006+rnd()*0.018}));
+  stars=Array.from({length:280},()=>({
+    x:rnd()*1800,y:rnd()*canvas.height*0.85,
+    s:rnd()*2.8+0.4,a:rnd(),sp:0.004+rnd()*0.014,
+    col:(['#ffffff','#ffe8c0','#c8d8ff','#ffccff','#ccffff','#ffffcc'])[Math.floor(rnd()*6)]
+  }));
   shooting=[];
   phaseStartTime=Date.now();
 
@@ -963,7 +967,7 @@ function buildPhase(ph){
     moonRocks.push({x:rnd()*worldW,r:4+rnd()*18,shade:rnd()});
   }
 
-  // ── PIRÂMIDES EGÍPCIAS escaláveis (bloqueio obrigatório) ──
+  // ── PIRÂMIDES EGÍPCIAS escaláveis (degraus que o personagem pode subir) ──
   mountains=[];
   const mtCount=6+Math.floor(ph*.7);
   const secretIdx=Math.floor(rnd()*mtCount);
@@ -972,21 +976,23 @@ function buildPhase(ph){
     if(baseX>worldW-900)continue;
     const steps=4+Math.floor(rnd()*3);
     const bW=52+Math.floor(rnd()*2)*16;
-    const bH=36+Math.floor(rnd()*2)*8;
+    const bH=28; // altura menor para degraus escaláveis (<=P.h/2)
     const isSecret=(m===secretIdx);
     const pyW=(steps*2+1)*bW;
-    // Paredes laterais invisíveis (bloqueio)
-    const wallH=bH*(steps+2);
-    plats.push({x:baseX-14,y:GY_VAL-wallH,w:14,h:wallH,wall:true});
-    plats.push({x:baseX+pyW,y:GY_VAL-wallH,w:14,h:wallH,wall:true});
-    // Degraus pirâmide: subida + descida
+    // SEM paredes laterais — personagem pode entrar e sair livremente
+    // Degraus pirâmide: cada nível é uma plataforma de piso que sobressai
     for(let s=0;s<=steps;s++){
       const lx=baseX+(s*bW/2);
       const pw=pyW-(s*bW);
       const py2=GY_VAL-bH*(s+1);
       if(pw>0&&lx<worldW-200){
         const isTop2=(s===steps);
-        plats.push({x:lx,y:py2,w:pw,h:bH,color:isSecret?(isTop2?'#ffe066':'#c8960a'):(isTop2?'#d4c4a0':'#8b6914'),mario:true,mountain:true,isTop:isTop2,pyIdx:m});
+        plats.push({
+          x:lx, y:py2, w:pw, h:bH,
+          color:isSecret?(isTop2?'#ffe066':'#c8960a'):(isTop2?'#d4c4a0':'#8b6914'),
+          mario:true, mountain:true, isTop:isTop2, pyIdx:m,
+          stepH:bH // marcador para colisão suave
+        });
         mountains.push({baseX,pyW,bH,steps,bW,isSecret,m});
       }
     }
@@ -1088,8 +1094,7 @@ function doCollide(e){
   let grounded=false;
   for(let i=0;i<plats.length;i++){
     const pl=plats[i];
-    // Paredes laterais das pirâmides
-    if(pl.wall){if(e.x+e.w>pl.x&&e.x<pl.x+pl.w&&e.y+e.h>pl.y&&e.y<pl.y+pl.h){if(e.x+e.w/2<pl.x+pl.w/2)e.x=pl.x-e.w-1;else e.x=pl.x+pl.w+1;e.vx=0;}continue;}
+    // Porta secreta
     if(pl.secretDoor){if(e===P&&e.x+e.w>pl.x&&e.x<pl.x+pl.w&&e.y+e.h>pl.y&&e.y<pl.y+pl.h){if(!sdActive){sdActive=true;triggerSecret();}}continue;}
     if(e.x+e.w>pl.x&&e.x<pl.x+pl.w){
       // Chão principal
@@ -1098,7 +1103,25 @@ function doCollide(e){
           e.y=pl.y-e.h;e.vy=0;grounded=true;
         }
       } else if(pl.mario||pl.lunar){
-        // Plataforma flutuante — só de cima
+        // Plataformas de degrau da pirâmide: auto-step climbing
+        if(pl.mountain){
+          // Permite subir o degrau automaticamente se o personagem está andando para a lateral
+          // e o obstáculo é um degrau pequeno (não mais que metade da altura do personagem)
+          const stepH=pl.stepH||28;
+          const playerBottom=e.y+e.h;
+          const playerMid=e.y+e.h/2;
+          if(e.vy>=0&&playerBottom<=pl.y+10&&playerBottom+e.vy>=pl.y){
+            // Chegando pelo topo: pousar normalmente
+            e.y=pl.y-e.h;e.vy=0;grounded=true;
+          }
+          // Se bateu lateral e o topo do degrau está na altura dos pés,
+          // empurra o personagem para cima (escalada suave)
+          else if(playerBottom>pl.y&&playerBottom<pl.y+stepH+2&&(e.vx!==0)){
+            e.y=pl.y-e.h;e.vy=0;grounded=true;
+          }
+          continue;
+        }
+        // Plataforma flutuante normal — só de cima
         if(e.vy>=0&&e.y+e.h<=pl.y+10&&e.y+e.h+e.vy>=pl.y){
           // Bloco moeda — pular por baixo
           if(pl.coin&&e.vy<0&&e.y>=pl.y+pl.h&&e.y+e.vy<=pl.y+pl.h){
@@ -1541,66 +1564,96 @@ function update(){
 // ── RENDER ──
 function drawLunarGround(cx2){
   const W=canvas.width, GY_VAL=GY();
-  // Textura lunar no chão
+  // Superfície cósmica — gradiente neon alienígena
   plats.forEach(pl=>{
     const dx=pl.x-cx2;
     if(dx+pl.w<0||dx>W)return;
     if(pl.lunar&&!pl.mario){
-      // Superfície lunar — cinza acinzentado com crateras
       const g=ctx.createLinearGradient(0,pl.y,0,pl.y+pl.h);
-      g.addColorStop(0,'#c8c8d4'); g.addColorStop(0.3,'#a8a8b8'); g.addColorStop(1,'#606070');
+      g.addColorStop(0,'#2a1060'); g.addColorStop(0.25,'#1a0840'); g.addColorStop(1,'#080018');
       ctx.fillStyle=g;
       ctx.fillRect(dx,pl.y,pl.w,pl.h);
-      // Borda superior com reflexo
-      ctx.fillStyle='#dddde8';
-      ctx.fillRect(dx,pl.y,pl.w,3);
-      // Padrão pontilhado (pó lunar)
-      ctx.fillStyle='rgba(255,255,255,0.12)';
-      for(let i=0;i<pl.w;i+=20){
-        ctx.beginPath(); ctx.arc(dx+i+10,pl.y+5,3,0,Math.PI*2); ctx.fill();
+      // Borda superior neon
+      const ng=ctx.createLinearGradient(dx,pl.y,dx+pl.w,pl.y);
+      ng.addColorStop(0,'rgba(120,40,255,0.8)');
+      ng.addColorStop(0.5,'rgba(180,80,255,0.9)');
+      ng.addColorStop(1,'rgba(80,160,255,0.7)');
+      ctx.fillStyle=ng;
+      ctx.fillRect(dx,pl.y,pl.w,2);
+      // Linha de energia pulsante
+      const pt=Date.now()*0.003;
+      ctx.strokeStyle=`rgba(140,60,255,${0.3+Math.sin(pt+dx*0.01)*0.2})`;
+      ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(dx,pl.y+6); ctx.lineTo(dx+pl.w,pl.y+6); ctx.stroke();
+      // Pó cósmico brilhante
+      ctx.fillStyle='rgba(160,120,255,0.1)';
+      for(let i=0;i<pl.w;i+=18){
+        ctx.beginPath(); ctx.arc(dx+i+9,pl.y+4,2,0,Math.PI*2); ctx.fill();
       }
     }
   });
-  // Pedras lunares decorativas
+  // Pedras cósmicas
   moonRocks.forEach(r=>{
     const rx=r.x-cx2;
     if(rx<-40||rx>W+40)return;
-    const shade=0.4+r.shade*0.4;
-    ctx.fillStyle=`rgba(180,180,200,${shade})`;
-    ctx.beginPath(); ctx.ellipse(rx,GY_VAL-r.r*0.4,r.r,r.r*0.6,0,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle=`rgba(220,220,240,${shade*0.5})`;
-    ctx.beginPath(); ctx.ellipse(rx-r.r*0.2,GY_VAL-r.r*0.5,r.r*0.3,r.r*0.2,0,0,Math.PI*2); ctx.fill();
+    const shade=0.3+r.shade*0.5;
+    const rg=ctx.createRadialGradient(rx-r.r*0.2,GY_VAL-r.r*0.5,0,rx,GY_VAL-r.r*0.4,r.r);
+    rg.addColorStop(0,`rgba(120,80,220,${shade*0.8})`);
+    rg.addColorStop(1,`rgba(40,20,80,${shade*0.3})`);
+    ctx.fillStyle=rg;
+    ctx.beginPath(); ctx.ellipse(rx,GY_VAL-r.r*0.4,r.r,r.r*0.55,0,0,Math.PI*2); ctx.fill();
+    // Reflexo topo
+    ctx.fillStyle=`rgba(180,140,255,${shade*0.4})`;
+    ctx.beginPath(); ctx.ellipse(rx-r.r*0.2,GY_VAL-r.r*0.6,r.r*0.28,r.r*0.16,0,0,Math.PI*2); ctx.fill();
   });
 }
 
 function drawMarioPlatform(dx,pl){
   const pw=pl.w, ph2=pl.h;
-  const col=pl.coin?'#b8860b':(pl.color||'#7c3f1a');
-  // Bloco principal
-  ctx.fillStyle=col;
-  ctx.fillRect(dx,pl.y,pw,ph2);
-  // Borda superior brilhante
-  ctx.fillStyle='rgba(255,255,255,0.35)';
-  ctx.fillRect(dx,pl.y,pw,3);
-  // Borda esquerda brilhante
-  ctx.fillRect(dx,pl.y,3,ph2);
-  // Sombra inferior
-  ctx.fillStyle='rgba(0,0,0,0.4)';
-  ctx.fillRect(dx,pl.y+ph2-3,pw,3);
-  ctx.fillRect(dx+pw-3,pl.y,3,ph2);
-  // Padrão de tijolos
-  if(!pl.coin){
-    ctx.strokeStyle='rgba(0,0,0,0.25)'; ctx.lineWidth=1;
-    for(let bx=dx;bx<dx+pw;bx+=16){
-      ctx.beginPath(); ctx.moveTo(bx,pl.y); ctx.lineTo(bx,pl.y+ph2); ctx.stroke();
-    }
+  const col=pl.coin?'#8b6014':(pl.mountain?'#1a0840':pl.color||'#1a0848');
+  // Bloco principal com gradiente cósmico
+  const pg=ctx.createLinearGradient(dx,pl.y,dx,pl.y+ph2);
+  if(pl.mountain){
+    // Pirâmide: dourado alienígena
+    const baseCol=pl.color||'#8b6914';
+    pg.addColorStop(0,baseCol);
+    pg.addColorStop(0.5,pl.isTop?'#ffe080':'#6a4810');
+    pg.addColorStop(1,'#3a2208');
+  } else if(pl.coin){
+    pg.addColorStop(0,'#c8900a'); pg.addColorStop(0.5,'#b8860b'); pg.addColorStop(1,'#7a5000');
   } else {
-    // Bloco de moeda — símbolo ?
+    // Plataforma galáctica
+    pg.addColorStop(0,'#2a1060'); pg.addColorStop(0.5,pl.color||'#1a0848'); pg.addColorStop(1,'#0a0420');
+  }
+  ctx.fillStyle=pg;
+  ctx.fillRect(dx,pl.y,pw,ph2);
+  // Borda superior neon
+  if(pl.mountain){
+    ctx.fillStyle='rgba(255,200,80,0.6)';
+  } else {
+    ctx.fillStyle='rgba(140,80,255,0.7)';
+  }
+  ctx.fillRect(dx,pl.y,pw,2);
+  // Borda esquerda brilhante
+  ctx.fillStyle='rgba(255,255,255,0.15)';
+  ctx.fillRect(dx,pl.y,2,ph2);
+  // Sombra inferior escura
+  ctx.fillStyle='rgba(0,0,0,0.5)';
+  ctx.fillRect(dx,pl.y+ph2-2,pw,2);
+  ctx.fillRect(dx+pw-2,pl.y,2,ph2);
+  // Padrão de blocos ou símbolo
+  if(pl.coin){
     ctx.fillStyle='#fff';
     ctx.font=`bold ${ph2+4}px monospace`;
     ctx.textAlign='center';
     ctx.fillText(pl._hit?'':'?',dx+pw/2,pl.y+ph2-2);
     ctx.textAlign='left';
+  } else if(!pl.mountain){
+    // Grid de energia
+    ctx.strokeStyle='rgba(100,60,200,0.2)'; ctx.lineWidth=1;
+    for(let bx=dx;bx<dx+pw;bx+=16){
+      ctx.beginPath(); ctx.moveTo(bx,pl.y); ctx.lineTo(bx,pl.y+ph2); ctx.stroke();
+    }
   }
 }
 
@@ -1781,9 +1834,19 @@ function render(){
 
   // Estrelas (mais visíveis à noite)
   const starAlpha=dp.phase==='night'?1:dp.phase==='day'?0:0.5;
-  if(starAlpha>0.05){
+  if(starAlpha>0.02){
     ctx.globalAlpha=starAlpha;
-    stars.forEach(s=>{ctx.fillStyle=`rgba(255,255,255,${s.a.toFixed(2)})`;ctx.fillRect(s.x,s.y,s.s,s.s);});
+    stars.forEach(s=>{
+      ctx.fillStyle=s.col||'#fff';
+      // Estrelas maiores têm brilho em cruz
+      if(s.s>2.0){
+        ctx.globalAlpha=starAlpha*s.a;
+        ctx.fillRect(s.x-s.s,s.y,s.s*2,1);
+        ctx.fillRect(s.x,s.y-s.s,1,s.s*2);
+      }
+      ctx.globalAlpha=starAlpha*s.a;
+      ctx.fillRect(s.x,s.y,s.s,s.s);
+    });
     ctx.globalAlpha=1;
   }
 
@@ -1797,21 +1860,104 @@ function render(){
     ctx.restore();
   });
 
-  // Sol / Lua dependendo do horário
+  // Nebulosa de fundo (sempre visível, muda de cor por fase)
+  {
+    const nbT=Date.now()*0.00015;
+    const nbColors=[
+      ['rgba(80,0,160,','rgba(0,40,180,'],
+      ['rgba(120,0,80,','rgba(60,0,140,'],
+      ['rgba(0,60,180,','rgba(40,0,120,'],
+    ];
+    const nbc=nbColors[phase%nbColors.length];
+    ctx.save();
+    for(let nb=0;nb<4;nb++){
+      const nx=W*(0.1+nb*0.28)+Math.sin(nbT+nb*1.4)*60;
+      const ny=H*(0.08+nb%2*0.18)+Math.cos(nbT*0.7+nb)*30;
+      const nr=120+nb*40+Math.sin(nbT*0.5+nb)*30;
+      const ng=ctx.createRadialGradient(nx,ny,0,nx,ny,nr);
+      ng.addColorStop(0,nbc[nb%2]+'0.22)');
+      ng.addColorStop(0.6,nbc[(nb+1)%2]+'0.08)');
+      ng.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=ng; ctx.beginPath(); ctx.arc(nx,ny,nr,0,Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // Sol intergalático / Portal dimensional (dia/amanhecer/anoitecer)
   if(dp.phase==='day'||dp.phase==='dawn'||dp.phase==='dusk'){
-    const sunX=W*0.75, sunY=60;
-    const sunG=ctx.createRadialGradient(sunX,sunY,0,sunX,sunY,45);
-    sunG.addColorStop(0,'#ffffc0'); sunG.addColorStop(0.5,'#ffdd44'); sunG.addColorStop(1,'rgba(255,180,0,0)');
-    ctx.fillStyle=sunG; ctx.beginPath(); ctx.arc(sunX,sunY,45,0,Math.PI*2); ctx.fill();
+    const sunX=W*0.75, sunY=62, now_=Date.now()*0.001;
+    ctx.save();
+    // Anéis de energia
+    for(let ri=3;ri>0;ri--){
+      const rSz=28+ri*22+Math.sin(now_+ri)*8;
+      const rA=0.06-ri*0.012;
+      const rg=ctx.createRadialGradient(sunX,sunY,rSz-6,sunX,sunY,rSz);
+      rg.addColorStop(0,`rgba(140,60,255,0)`);
+      rg.addColorStop(0.5,`rgba(180,80,255,${rA})`);
+      rg.addColorStop(1,`rgba(80,160,255,0)`);
+      ctx.fillStyle=rg; ctx.beginPath(); ctx.arc(sunX,sunY,rSz,0,Math.PI*2); ctx.fill();
+    }
+    // Núcleo brilhante
+    const sunG=ctx.createRadialGradient(sunX-8,sunY-8,0,sunX,sunY,40);
+    sunG.addColorStop(0,'#ffffff');
+    sunG.addColorStop(0.2,'#e0c8ff');
+    sunG.addColorStop(0.6,'#8040ff');
+    sunG.addColorStop(1,'rgba(40,0,120,0)');
+    ctx.fillStyle=sunG; ctx.beginPath(); ctx.arc(sunX,sunY,40,0,Math.PI*2); ctx.fill();
+    // Raios de energia
+    ctx.strokeStyle='rgba(180,100,255,0.25)'; ctx.lineWidth=1.5;
+    for(let r=0;r<8;r++){
+      const ang=now_*0.5+r*Math.PI/4;
+      const r1=44, r2=62+Math.sin(now_+r)*10;
+      ctx.beginPath();
+      ctx.moveTo(sunX+Math.cos(ang)*r1,sunY+Math.sin(ang)*r1);
+      ctx.lineTo(sunX+Math.cos(ang)*r2,sunY+Math.sin(ang)*r2);
+      ctx.stroke();
+    }
+    ctx.restore();
   } else {
-    // Lua
-    const moonX=W*0.8,moonY=55;
-    ctx.fillStyle='#e8e8d0'; ctx.beginPath(); ctx.arc(moonX,moonY,26,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='rgba(0,0,30,0.15)'; ctx.beginPath(); ctx.arc(moonX+8,moonY-4,20,0,Math.PI*2); ctx.fill();
-    // Crateras na lua
-    ['#d4d4bc','#c8c8b0'].forEach((col,i)=>{
-      ctx.fillStyle=col; ctx.beginPath(); ctx.arc(moonX-8+i*12,moonY+4+i*6,3+i,0,Math.PI*2); ctx.fill();
+    // Lua cósmica com crateras e halo
+    const moonX=W*0.8,moonY=55,now_=Date.now()*0.0008;
+    ctx.save();
+    // Halo da lua
+    const hg=ctx.createRadialGradient(moonX,moonY,22,moonX,moonY,55);
+    hg.addColorStop(0,'rgba(180,160,255,0.15)');
+    hg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=hg; ctx.beginPath(); ctx.arc(moonX,moonY,55,0,Math.PI*2); ctx.fill();
+    // Corpo lunar com gradiente
+    const mg=ctx.createRadialGradient(moonX-6,moonY-6,2,moonX,moonY,26);
+    mg.addColorStop(0,'#f0eeff'); mg.addColorStop(0.6,'#c8c0e8'); mg.addColorStop(1,'#9080c0');
+    ctx.fillStyle=mg; ctx.beginPath(); ctx.arc(moonX,moonY,26,0,Math.PI*2); ctx.fill();
+    // Sombra
+    ctx.fillStyle='rgba(0,0,40,0.18)'; ctx.beginPath(); ctx.arc(moonX+8,moonY-4,20,0,Math.PI*2); ctx.fill();
+    // Crateras
+    [{x:-9,y:5,r:4},{x:6,y:-8,r:3},{x:2,y:10,r:2.5}].forEach(c=>{
+      ctx.fillStyle='rgba(100,90,160,0.5)';
+      ctx.beginPath(); ctx.arc(moonX+c.x,moonY+c.y,c.r,0,Math.PI*2); ctx.fill();
     });
+    ctx.restore();
+  }
+
+  // Galáxia espiral ao fundo (parallax suave)
+  {
+    const gxT=Date.now()*0.0002;
+    const gxX=W*0.2-cx2*0.03;
+    const gxY=H*0.35;
+    if(gxX>-200&&gxX<W+200){
+      ctx.save(); ctx.globalAlpha=0.12;
+      ctx.translate(gxX,gxY); ctx.rotate(gxT*0.08);
+      for(let arm=0;arm<3;arm++){
+        ctx.rotate(Math.PI*2/3);
+        for(let p=0;p<40;p++){
+          const d=p*3.5, ang=p*0.22;
+          const px2=Math.cos(ang)*d, py2=Math.sin(ang)*d;
+          const sz=Math.max(0.5,3-p*0.06);
+          ctx.fillStyle=`rgba(180,140,255,${0.8-p*0.018})`;
+          ctx.beginPath(); ctx.arc(px2,py2,sz,0,Math.PI*2); ctx.fill();
+        }
+      }
+      ctx.restore();
+    }
   }
 
   // Planeta (parallax) — só visível à noite e transições
@@ -1832,24 +1978,30 @@ function render(){
     }
   }
 
-  // Montanhas — cores mudam conforme período do dia
-  let mtColor;
-  if(dp.phase==='day')        mtColor='#4a7a30';  // verde de dia
-  else if(dp.phase==='dawn')  mtColor=lerpColor('#101020','#4a7a30',dp.t);
-  else if(dp.phase==='dusk')  mtColor=lerpColor('#4a7a30','#2a1840',dp.t);
-  else                        mtColor='#101020';  // escuro à noite
-  ctx.fillStyle=mtColor;
-  for(let i=0;i<8;i++){
-    const mx=(i*280)-(cx2*0.08)%1120;
-    ctx.beginPath(); ctx.moveTo(mx,GY_VAL-30); ctx.lineTo(mx+55,GY_VAL-130); ctx.lineTo(mx+110,GY_VAL-30); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(mx+80,GY_VAL-30); ctx.lineTo(mx+135,GY_VAL-90); ctx.lineTo(mx+190,GY_VAL-30); ctx.fill();
-    // Neve no topo durante o dia
-    if(dp.phase==='day'){
-      ctx.fillStyle='rgba(255,255,255,0.7)';
-      ctx.beginPath(); ctx.moveTo(mx+40,GY_VAL-120); ctx.lineTo(mx+55,GY_VAL-130); ctx.lineTo(mx+70,GY_VAL-120); ctx.fill();
-      ctx.fillStyle=mtColor;
-    }
+  // Montanhas cósmicas — silhueta alienígena com gradiente nebulosa
+  const mtAlpha=dp.phase==='dawn'?dp.t:dp.phase==='dusk'?1-dp.t*0.3:1;
+  ctx.save(); ctx.globalAlpha=mtAlpha;
+  // Camada de fundo (mais distante, mais azul)
+  for(let i=0;i<10;i++){
+    const mx=(i*310)-(cx2*0.06)%1240;
+    const mg2=ctx.createLinearGradient(mx,GY_VAL-30,mx+110,GY_VAL-180);
+    mg2.addColorStop(0,'#120828'); mg2.addColorStop(1,'#1a0d45');
+    ctx.fillStyle=mg2;
+    ctx.beginPath(); ctx.moveTo(mx,GY_VAL-30); ctx.lineTo(mx+55,GY_VAL-180); ctx.lineTo(mx+110,GY_VAL-30); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(mx+80,GY_VAL-30); ctx.lineTo(mx+135,GY_VAL-120); ctx.lineTo(mx+190,GY_VAL-30); ctx.fill();
   }
+  // Camada de frente (mais perto, mais escura/roxa)
+  for(let i=0;i<8;i++){
+    const mx=(i*280+140)-(cx2*0.12)%1120;
+    const mg3=ctx.createLinearGradient(mx,GY_VAL-30,mx+100,GY_VAL-140);
+    mg3.addColorStop(0,'#0a051a'); mg3.addColorStop(1,'#1e0840');
+    ctx.fillStyle=mg3;
+    ctx.beginPath(); ctx.moveTo(mx,GY_VAL-30); ctx.lineTo(mx+50,GY_VAL-140); ctx.lineTo(mx+100,GY_VAL-30); ctx.fill();
+    // Brilho do topo (cristal alienígena)
+    ctx.fillStyle='rgba(160,80,255,0.18)';
+    ctx.beginPath(); ctx.moveTo(mx+36,GY_VAL-128); ctx.lineTo(mx+50,GY_VAL-140); ctx.lineTo(mx+64,GY_VAL-128); ctx.fill();
+  }
+  ctx.restore();
 
   // === CHÃO LUNAR ===
   drawLunarGround(cx2);
@@ -2013,46 +2165,52 @@ function render(){
     ctx.restore();
   }
 
-  // === AURORA BOREAL (só à noite) ===
-  if(dp.phase==='night'||dp.phase==='dusk'){
-    const auroraAlpha=(dp.phase==='night'?0.18:dp.t*0.12);
-    const auroraColors=['rgba(0,255,180,','rgba(80,120,255,','rgba(200,0,255,'];
+  // === AURORA CÓSMICA (sempre visível, mais intensa à noite) ===
+  {
+    const auroraAlpha=(dp.phase==='night'?0.28:dp.phase==='day'?0.08:0.18);
+    const auroraColors=['rgba(0,255,200,','rgba(100,60,255,','rgba(255,0,200,','rgba(0,160,255,'];
     ctx.save(); ctx.globalAlpha=auroraAlpha;
-    for(let a=0;a<3;a++){
-      const ax=W*0.15+a*W*0.28;
-      const aw=W*0.22;
-      const ag=ctx.createLinearGradient(ax,0,ax,H*0.45);
+    for(let a=0;a<4;a++){
+      const ax=W*0.08+a*W*0.24;
+      const aw=W*0.18;
+      const ag=ctx.createLinearGradient(ax,0,ax,H*0.5);
       ag.addColorStop(0,auroraColors[a]+'0)');
-      ag.addColorStop(0.3,auroraColors[a]+'0.7)');
+      ag.addColorStop(0.25,auroraColors[a]+'0.8)');
+      ag.addColorStop(0.7,auroraColors[(a+1)%4]+'0.4)');
       ag.addColorStop(1,auroraColors[a]+'0)');
       ctx.fillStyle=ag;
       ctx.beginPath();
-      const wave=Math.sin(Date.now()*0.0004+a)*18;
-      ctx.moveTo(ax+wave,0); ctx.quadraticCurveTo(ax+aw/2+wave,H*0.25,ax+aw+wave,0);
-      ctx.lineTo(ax+aw+wave,H*0.45); ctx.quadraticCurveTo(ax+aw/2+wave,H*0.3,ax+wave,H*0.45);
+      const wave=Math.sin(Date.now()*0.0005+a*1.3)*22;
+      const wave2=Math.sin(Date.now()*0.0003+a*0.9)*16;
+      ctx.moveTo(ax+wave,0);
+      ctx.quadraticCurveTo(ax+aw/2+wave2,H*0.28,ax+aw+wave,0);
+      ctx.lineTo(ax+aw+wave,H*0.5);
+      ctx.quadraticCurveTo(ax+aw/2+wave2,H*0.35,ax+wave,H*0.5);
       ctx.closePath(); ctx.fill();
     }
     ctx.restore();
   }
 
-  // === NÉVOA NO CHÃO (amanhecer/anoitecer) ===
-  if(dp.phase==='dawn'||dp.phase==='dusk'){
-    const fogAlpha=(dp.phase==='dawn'?(1-dp.t)*0.22:dp.t*0.18);
-    const fg=ctx.createLinearGradient(0,GY_VAL-40,0,GY_VAL+20);
-    fg.addColorStop(0,'rgba(255,200,150,0)');
-    fg.addColorStop(0.5,`rgba(255,200,150,${fogAlpha})`);
-    fg.addColorStop(1,'rgba(255,180,120,0)');
-    ctx.fillStyle=fg; ctx.fillRect(0,GY_VAL-40,W,60);
+  // === NÉVOA CÓSMICA NO CHÃO (sempre presente) ===
+  {
+    const fogA=0.12+Math.sin(Date.now()*0.0008)*0.05;
+    const fg=ctx.createLinearGradient(0,GY_VAL-50,0,GY_VAL+20);
+    fg.addColorStop(0,'rgba(80,20,160,0)');
+    fg.addColorStop(0.5,`rgba(100,40,200,${fogA})`);
+    fg.addColorStop(1,'rgba(40,0,80,0)');
+    ctx.fillStyle=fg; ctx.fillRect(0,GY_VAL-50,W,70);
   }
 
-  // === PÓ LUNAR FLUTUANTE ===
+  // === PARTÍCULAS CÓSMICAS FLUTUANTES ===
   const dustT=Date.now()*0.001;
-  ctx.save(); ctx.globalAlpha=0.18;
-  for(let d=0;d<12;d++){
-    const dx2=(Math.sin(dustT*0.4+d*1.7)*0.5+0.5)*W;
-    const dy2=GY_VAL-8-Math.abs(Math.sin(dustT*0.6+d*2.3))*28;
-    ctx.fillStyle='#dddde8';
-    ctx.beginPath(); ctx.arc(dx2,dy2,1.2+Math.sin(d)*0.8,0,Math.PI*2); ctx.fill();
+  ctx.save(); ctx.globalAlpha=0.28;
+  const dustColors=['#c080ff','#80c0ff','#ff80ff','#80ffcc','#ffcc80'];
+  for(let d=0;d<18;d++){
+    const dx2=(Math.sin(dustT*0.38+d*1.72)*0.5+0.5)*W;
+    const dy2=GY_VAL-10-Math.abs(Math.sin(dustT*0.55+d*2.1))*38;
+    const dc=dustColors[d%dustColors.length];
+    ctx.fillStyle=dc;
+    ctx.beginPath(); ctx.arc(dx2,dy2,1.4+Math.sin(d*1.3)*0.8,0,Math.PI*2); ctx.fill();
   }
   ctx.restore();
 
