@@ -102,6 +102,18 @@ html,body{background:#000;width:100%;height:100%;overflow:hidden;font-family:'Co
 <div class="card">
   <h1>👑 PRINCESA LUNAR 🌙</h1>
   <input type="text" id="playerName" placeholder="Seu nome" maxlength="15">
+  <p style="color:#ffcc44;font-size:13px;margin:10px 0 6px;font-weight:bold;">Escolha seu personagem:</p>
+  <div style="display:flex;justify-content:center;gap:14px;margin-bottom:8px;">
+    <button id="genderMaleBtn" onclick="selectGender('male')"
+      style="background:#2255ff;color:#fff;border:3px solid #2255ff;padding:10px 18px;border-radius:40px;font-size:15px;font-weight:bold;cursor:pointer;font-family:'Courier New',monospace;transition:all 0.15s;">
+      🧑 MASCULINO<br><span style="font-size:11px;opacity:0.85;">Personagem Azul</span>
+    </button>
+    <button id="genderFemaleBtn" onclick="selectGender('female')"
+      style="background:#ff1493;color:#fff;border:3px solid #ff1493;padding:10px 18px;border-radius:40px;font-size:15px;font-weight:bold;cursor:pointer;font-family:'Courier New',monospace;transition:all 0.15s;">
+      👧 FEMININO<br><span style="font-size:11px;opacity:0.85;">Personagem Rosa</span>
+    </button>
+  </div>
+  <p id="genderSelected" style="color:#44ff44;font-size:12px;margin:0 0 6px;min-height:18px;"></p>
   <p style="color:#aaa;font-size:11px;margin:4px 0 0;">Seu código (fixo):</p>
   <div class="code-box"><span id="myCode">------</span></div>
   <button id="copyCodeBtn" class="btn-orange">📋 COPIAR CÓDIGO</button>
@@ -203,6 +215,7 @@ const firebaseConfig = {
   appId: "1:166050844176:web:9ecee22f2ca3a703a78495"
 };
 
+
 let db=null,multiplayerOK=false;
 try{
   if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
@@ -238,6 +251,20 @@ document.getElementById('myCode').textContent=MY_CODE;
 const savedName=localStorage.getItem('princesa_name')||'';
 if(savedName) document.getElementById('playerName').value=savedName;
 document.getElementById('playerName').addEventListener('input',function(){localStorage.setItem('princesa_name',this.value.trim());});
+
+// ── GÊNERO DO PERSONAGEM ──
+let playerGender = localStorage.getItem('princesa_gender') || 'female';
+function selectGender(g){
+  playerGender = g;
+  localStorage.setItem('princesa_gender', g);
+  const isMale = (g === 'male');
+  document.getElementById('genderMaleBtn').style.opacity   = isMale ? '1' : '0.45';
+  document.getElementById('genderFemaleBtn').style.opacity = isMale ? '0.45' : '1';
+  document.getElementById('genderMaleBtn').style.transform   = isMale ? 'scale(1.08)' : 'scale(1)';
+  document.getElementById('genderFemaleBtn').style.transform = isMale ? 'scale(1)' : 'scale(1.08)';
+  document.getElementById('genderSelected').textContent = isMale ? '✅ Personagem Masculino (Azul) selecionado!' : '✅ Personagem Feminino (Rosa) selecionado!';
+}
+selectGender(playerGender);
 
 // ── ESTADO MULTIPLAYER ──
 let roomRef=null,myPosRef=null,otherPosRef=null;
@@ -411,7 +438,7 @@ function launchGame(){
 
   otherPosRef.on('value',snap=>{
     const d=snap.val();
-    if(d){remotePos.x=d.x||150;remotePos.y=d.y||spawnY;remotePos.fr=d.fr!==false;remotePos.alive=d.alive!==false;remotePos.groundY=d.groundY||null;}
+    if(d){remotePos.x=d.x||150;remotePos.y=d.y||spawnY;remotePos.fr=d.fr!==false;remotePos.alive=d.alive!==false;remotePos.groundY=d.groundY||null;remotePos.gender=d.gender||'female';}
   });
 
   // Detectar saída do outro jogador
@@ -430,7 +457,7 @@ function launchGame(){
     otherPosRef=roomRef.child('pos/'+newId);
     otherPosRef.on('value',snap=>{
       const d=snap.val();
-      if(d){remotePos.x=d.x||150;remotePos.y=d.y||370;remotePos.fr=d.fr!==false;remotePos.alive=d.alive!==false;}
+      if(d){remotePos.x=d.x||150;remotePos.y=d.y||370;remotePos.fr=d.fr!==false;remotePos.alive=d.alive!==false;remotePos.gender=d.gender||'female';}
     });
     window.isMP=true; window.otherName=newName;
   };
@@ -444,6 +471,7 @@ function launchGame(){
   setStatus('👥 Jogando com '+otherName,'#003300');
   voiceInited=false;
   startVoiceListener();
+  killListenerActive=false; setupKillListener();
   setTimeout(()=>{
     document.getElementById('saveFriendName').textContent=otherName;
     document.getElementById('saveFriendPopup').classList.add('show');
@@ -761,6 +789,7 @@ document.body.addEventListener('click',enableAudio,{once:true});
 // ── ESTADO ──
 let phase=1,score=0,coins=0,lives=33,att=3;
 let active=true,phDone=false,phTrans=false;
+let coyoteFrames=0; // permite pular logo após sair de uma plataforma (coyote time)
 let camX=0,worldW=22000;
 let respawn=false,respawnTX=0;
 let jumpAnim=0,legA=0;
@@ -874,10 +903,13 @@ function buildPhase(ph){
   mush=ph>=8?{x:worldW-600,y:GY_VAL-65,w:40,h:40,done:false}:null;
 
   const holes=[];
-  for(let i=0;i<12+ph*2;i++){
-    const hx=1800+i*(worldW/14)+rnd()*400;
-    const hw=80+rnd()*80+ph*3;
-    holes.push({x:hx,w:hw});
+  // Buracos apenas na última fase (fase 33)
+  if(ph>=33){
+    for(let i=0;i<12+ph*2;i++){
+      const hx=1800+i*(worldW/14)+rnd()*400;
+      const hw=80+rnd()*80+ph*3;
+      holes.push({x:hx,w:hw});
+    }
   }
   plats=[];
   let lastX=0;
@@ -1059,26 +1091,54 @@ function tickGuard(){
 }
 
 // ── TOCHAS ──
+// Sync de inimigos mortos no multiplayer
+function syncEnemyKill(type, idx){
+  if(!window.isMP||!roomRef)return;
+  const key='kills_ph'+phase;
+  roomRef.child(key).push({type,idx,killer:MY_CODE,t:Date.now()});
+}
+function applyRemoteKill(type,idx){
+  if(type==='ground'&&enems[idx]){enems[idx].alive=false;sfx(500,'sine',0.1);}
+  else if(type==='fly'&&flyEnemies[idx]){flyEnemies[idx].alive=false;sfx(700,'square',0.1);}
+  else if(type==='guard'&&guard){guard.hits++;if(guard.hits>=50){guard.alive=false;}}
+}
+let killListenerActive=false;
+function setupKillListener(){
+  if(killListenerActive||!window.isMP||!roomRef)return;
+  killListenerActive=true;
+  const key='kills_ph'+phase;
+  roomRef.child(key).on('child_added',snap=>{
+    const d=snap.val();
+    if(d&&d.killer!==MY_CODE) applyRemoteKill(d.type,d.idx);
+  });
+}
+
 function tickTorches(){
   for(let i=torches.length-1;i>=0;i--){
     const t=torches[i];t.x+=t.vx;t.y+=t.vy;t.vy+=0.32;
     if(t.y>canvas.height+60||t.x<-200||t.x>worldW+200){torches.splice(i,1);continue;}
     if(guard&&guard.alive&&t.x<guard.x+guard.w&&t.x+t.w>guard.x&&t.y<guard.y+guard.h&&t.y+t.h>guard.y){
       guard.hits++;sfx(700,'sine',0.1);torches.splice(i,1);
-      if(guard.hits>=50){guard.alive=false;score+=1000;updateUI();}continue;
+      if(guard.hits>=50){guard.alive=false;score+=1000;updateUI();}
+      syncEnemyKill('guard',-1);
+      continue;
     }
     let hit=false;
     for(let j=enems.length-1;j>=0;j--){
       const e=enems[j];
       if(e.alive&&t.x<e.x+32&&t.x+t.w>e.x&&t.y<e.y+32&&t.y+t.h>e.y){
-        e.alive=false;score+=80;updateUI();torches.splice(i,1);hit=true;sfx(500,'sine',0.1);break;
+        e.alive=false;score+=80;updateUI();torches.splice(i,1);hit=true;sfx(500,'sine',0.1);
+        syncEnemyKill('ground',j);
+        break;
       }
     }
     if(hit)continue;
     for(let j=flyEnemies.length-1;j>=0;j--){
       const e=flyEnemies[j];
       if(e.alive&&t.x<e.x+36&&t.x+t.w>e.x&&t.y<e.y+36&&t.y+t.h>e.y){
-        e.alive=false;score+=120;updateUI();torches.splice(i,1);sfx(700,'square',0.12);break;
+        e.alive=false;score+=120;updateUI();torches.splice(i,1);sfx(700,'square',0.12);
+        syncEnemyKill('fly',j);
+        break;
       }
     }
   }
@@ -1103,7 +1163,12 @@ function tickEnems(){
     if(P.x<e.x+32&&P.x+P.w>e.x&&P.y<e.y+32&&P.y+P.h>e.y){
       // Pular em cima mata
       if(P.vy>0&&P.y+P.h-P.vy<=e.y+12){e.alive=false;score+=150;updateUI();P.vy=-9;sfx(600,'square',0.1);}
-      else if(P.inv<=0){loseLife();break;}
+      else if(P.inv<=0){
+        // Empurrar jogador para trás ao invés de deixar cair em buraco
+        P.vx = (P.x < e.x) ? -8 : 8;
+        P.vy = -5;
+        loseLife();break;
+      }
     }
   }
 }
@@ -1134,7 +1199,7 @@ function tickFlyEnemies(){
     const ew=e.type===3?22:30;
     if(P.x<e.x+ew&&P.x+P.w>e.x&&P.y<e.y+ew&&P.y+P.h>e.y){
       if(P.vy>0&&P.y+P.h-P.vy<=e.y+8){e.alive=false;score+=180;updateUI();P.vy=-9;sfx(650,'square',0.1);}
-      else if(P.inv<=0){loseLife();}
+      else if(P.inv<=0){P.vx=(P.x<e.x)?-8:8;P.vy=-4;loseLife();}
     }
   }
 }
@@ -1207,6 +1272,7 @@ function loadPhase(ph){
   active=true; phDone=false; phTrans=false; respawn=false; torches=[];
   myPhaseReady=false; otherPhaseReady=false; phaseResultShown=false;
   updateUI();
+  if(window.isMP){killListenerActive=false; setupKillListener();}
 }
 window.resetGame=()=>{score=0;coins=0;lives=33;att=3;loadPhase(1);};
 
@@ -1234,7 +1300,10 @@ function update(){
 
   tickTorches(); tickGuard();
 
-  if(jumpQ&&P.onG){P.vy=JUMP_V;P.onG=false;jumpAnim=12;sfx(660,'sine',0.08,0.15);}
+  // Coyote time: permite pular até 8 frames após sair do chão
+  if(P.onG) coyoteFrames=8;
+  else if(coyoteFrames>0) coyoteFrames--;
+  if(jumpQ&&(P.onG||coyoteFrames>0)){P.vy=JUMP_V;P.onG=false;coyoteFrames=0;jumpAnim=12;sfx(660,'sine',0.08,0.15);}
   jumpQ=false;
 
   if(L){P.vx=Math.max(-MAX_SPD,P.vx-ACC);P.fr=false;legA+=0.3;}
@@ -1255,7 +1324,7 @@ function update(){
   camX+=(Math.max(0,Math.min(P.x+P.w/2-canvas.width/3.5,worldW-canvas.width))-camX)*0.09;
 
   if(window.isMP&&myPosRef&&!respawn)
-    myPosRef.set({x:P.x,y:P.y,fr:P.fr,coins,alive:true,groundY:GY()});
+    myPosRef.set({x:P.x,y:P.y,fr:P.fr,coins,alive:true,groundY:GY(),gender:playerGender});
 }
 
 // ── RENDER ──
@@ -1614,8 +1683,9 @@ function render(){
     const remoteGY=remotePos.groundY||GY_VAL;
     const offsetY=remotePos.y-remoteGY; // quanto acima do chão o remoto está
     const ry=GY_VAL+offsetY;            // aplica esse offset no chão local
+    const remColor=(remotePos.gender==='male')?'#2255ff':'#ff69b4';
     if(rx+34>0&&rx<W){
-      ctx.fillStyle='#44aaff'; ctx.fillRect(rx,ry,34,38);
+      ctx.fillStyle=remColor; ctx.fillRect(rx,ry,34,38);
       ctx.fillStyle='#fec280'; ctx.fillRect(rx+6,ry+6,22,14);
       ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(rx+12,ry+12,3,0,Math.PI*2); ctx.fill();
       ctx.fillStyle='#ff1493'; ctx.fillRect(rx+4,ry-5,28,9);
@@ -1627,8 +1697,9 @@ function render(){
   // Jogador principal
   if(!(P.inv>0&&(Date.now()/60|0)%3===0)){
     const x=P.x-cx2,y=P.y;
+    const pColor=(typeof playerGender!=='undefined'&&playerGender==='male')?'#2255ff':'#ff69b4';
     if(x+34>0&&x<W){
-      ctx.fillStyle='#ff69b4'; ctx.fillRect(x,y,34,38);
+      ctx.fillStyle=pColor; ctx.fillRect(x,y,34,38);
       ctx.fillStyle='#fec280'; ctx.fillRect(x+6,y+6,22,14);
       ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(x+12,y+12,3,0,Math.PI*2); ctx.fill();
       ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(x+11,y+11,1.2,0,Math.PI*2); ctx.fill();
