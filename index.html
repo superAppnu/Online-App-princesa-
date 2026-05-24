@@ -93,7 +93,7 @@
 <!-- ════════════ TELA INICIAL ════════════ -->
 <div id="startScreen" class="screen">
     <div class="card">
-        <h1>👑 PRINCESA EMANUELLY 👑</h1>
+        <h1>👑 PRINCESA 👑</h1>
         <input type="text" id="playerName" placeholder="Seu nome" maxlength="15">
         <p style="color:#aaa;font-size:11px;margin:4px 0 0;">Seu código (fixo):</p>
         <div class="code-box"><span id="myCode">------</span></div>
@@ -144,7 +144,7 @@
 
 <div id="gameContainer" class="hidden">
     <div class="info-panel">
-        <span>⭐ PRINCESA EMANUELLY</span>
+        <span>⭐ PRINCESA</span>
         <span id="ui_phase">FASE 1/33</span>
         <span id="ui_lives">💖 33</span>
         <span id="ui_att">🎲 3/3</span>
@@ -170,13 +170,13 @@
 //  no console do Firebase (Configurações do projeto)
 // ══════════════════════════════════════════════════════════
 const firebaseConfig = {
-  apiKey: "AIzaSyAeRybVgZFjj6LhbPgYsVqpdl0eOIfVY5U",
-  authDomain: "online-app-e95f6.firebaseapp.com",
-  databaseURL: "https://online-app-e95f6-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "online-app-e95f6",
-  storageBucket: "online-app-e95f6.firebasestorage.app",
-  messagingSenderId: "166050844176",
-  appId: "1:166050844176:web:9ecee22f2ca3a703a78495"
+    apiKey: "COLE_SUA_API_KEY_AQUI",
+    authDomain: "COLE_SEU_AUTH_DOMAIN_AQUI",
+    databaseURL: "COLE_SUA_DATABASE_URL_AQUI",
+    projectId: "COLE_SEU_PROJECT_ID_AQUI",
+    storageBucket: "COLE_SEU_STORAGE_BUCKET_AQUI",
+    messagingSenderId: "COLE_SEU_MESSAGING_SENDER_ID_AQUI",
+    appId: "COLE_SEU_APP_ID_AQUI"
 };
 // ══════════════════════════════════════════════════════════
 
@@ -787,7 +787,7 @@ document.getElementById('exitBtn').onclick       = exitGame;
         // Moedas
         const blink=(Date.now()/100|0)%2===0;
         coinsA.forEach(c=>{
-            if(c.got) return; const dx=c.x-cx; if(dx+32||dx>W) return;
+            if(!e.alive) return; const dx=c.x-cx; if(dx+c.w<0||dx>W) return;
             ctx.fillStyle=blink?'#ffd700':'#ffaa00';
             ctx.beginPath(); ctx.arc(dx+c.w/2,c.y+c.h/2,c.w/2,0,Math.PI*2); ctx.fill();
             ctx.fillStyle='rgba(0,0,0,0.2)'; ctx.fillRect(dx+c.w/2-2,c.y+4,4,c.h-8);
