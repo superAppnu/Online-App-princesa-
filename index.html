@@ -789,7 +789,7 @@ document.getElementById('exitBtn').onclick       = exitGame;
         coinsA.forEach(c=>{
             if(c.got) return; const dx=c.x-cx; if(dx+c.w<0||dx>W) return;
             ctx.fillStyle=blink?'#ffd700':'#ffaa00';
-            ctx.beginPath(); ctx.arc(dx+c.w/2,c.y+c.h/2,c.w/2 20,0,Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(dx+c.w/2,c.y+c.h/2,c.w/2,0,Math.PI*2); ctx.fill();
             ctx.fillStyle='rgba(0,0,0,0.2)'; ctx.fillRect(dx+c.w/2-2,c.y+4,4,c.h-8);
         });
 
