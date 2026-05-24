@@ -1,4 +1,5 @@
-<!DOCTYPE html>
+
+           <!DOCTYPE html>
 <html lang="pt">
 <head>
     <meta charset="UTF-8">
@@ -63,7 +64,7 @@
 
 <div id="startScreen" class="screen">
     <div class="card">
-        <h1>👑 PRINCESA  👑</h1>
+        <h1>👑 PRINCESA 👑</h1>
         <input type="text" id="playerName" placeholder="Seu nome" maxlength="15" value="Princesa">
         <div class="code-box"><span id="myCode">------</span></div>
         <button id="copyCodeBtn" class="btn-orange">📋 COPIAR</button>
@@ -111,7 +112,7 @@
 <div class="game-container" id="gameContainer">
     <canvas id="gameCanvas" width="1000" height="500"></canvas>
     <div class="info-panel">
-        <span class="game-title">⭐ PRINCESA  ⭐</span>
+        <span class="game-title">⭐ PRINCESA ⭐</span>
         <span class="phase-badge" id="phaseText">FASE 1/33</span>
         <span class="lives-badge" id="globalLivesText">💖 33</span>
         <span class="chance-badge" id="chanceText">🎲 3/3</span>
@@ -129,6 +130,7 @@
 
 <script>
 
+// 🔧 CONFIGURAÇÃO DO FIREBASE - COLOQUE SUAS INFORMAÇÕES AQUI
 const firebaseConfig = {
   apiKey: "AIzaSyAeRybVgZFjj6LhbPgYsVqpdl0eOIfVY5U",
   authDomain: "online-app-e95f6.firebaseapp.com",
@@ -138,6 +140,7 @@ const firebaseConfig = {
   messagingSenderId: "166050844176",
   appId: "1:166050844176:web:9ecee22f2ca3a703a78495"
 };
+
 let db = null;
 let multiplayerActive = false;
 let currentRoomId = null;
@@ -474,7 +477,7 @@ document.getElementById('saveNoBtn').onclick = () => { document.getElementById('
             t.x += t.vx; t.y += t.vy; t.vy += 0.3;
             if (t.y > H + 50 || t.x < -100 || t.x > worldWidth + 100) { torchesList.splice(i, 1); i--; continue; }
             if (flagGuardian && flagGuardian.active && t.x < flagGuardian.x + flagGuardian.w && t.x + t.width > flagGuardian.x && t.y < flagGuardian.y + flagGuardian.h && t.y + t.height > flagGuardian.y) {
-                flagGuardian.hits++; playTorchSound(); torchesList.splic
+                flagGuardian.hits++; playTorchSound(); torchesList.splice(i, 1); i--;
                 if (flagGuardian.hits >= 50) { flagGuardian.active = false; totalScore += 1000; updateUI(); }
                 continue;
             }
@@ -617,9 +620,8 @@ document.getElementById('saveNoBtn').onclick = () => { document.getElementById('
                         gameActive = true; 
                         phaseComplete = false; 
                         phaseTransitionDelay = false; 
-                    
-    function loadPhase(phase) { currentPhase = phase; buildPhase(phase); player = { x: 150, y: GROUND_Y - 38, w: 34, h: 38, vx: 0, vy: 0, onGround: true, facingRight: 
-                        alert(`🏆 PARABÉNS! VOCÊ ZEROU O JOGO! 🏆`); 
+                    } else {
+                      alert(`🏆 PARABÉNS! VOCÊ ZEROU O JOGO! 🏆`); 
                         exitMultiplayer(); 
                     } 
                 }, 500); 
