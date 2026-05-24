@@ -93,7 +93,7 @@
 <!-- ════════════ TELA INICIAL ════════════ -->
 <div id="startScreen" class="screen">
     <div class="card">
-        <h1>👑 PRINCESA 👑</h1>
+        <h1>👑 PRINCESA EMANUELLY 👑</h1>
         <input type="text" id="playerName" placeholder="Seu nome" maxlength="15">
         <p style="color:#aaa;font-size:11px;margin:4px 0 0;">Seu código (fixo):</p>
         <div class="code-box"><span id="myCode">------</span></div>
@@ -144,7 +144,7 @@
 
 <div id="gameContainer" class="hidden">
     <div class="info-panel">
-        <span>⭐ PRINCESA</span>
+        <span>⭐ PRINCESA EMANUELLY</span>
         <span id="ui_phase">FASE 1/33</span>
         <span id="ui_lives">💖 33</span>
         <span id="ui_att">🎲 3/3</span>
@@ -787,7 +787,7 @@ document.getElementById('exitBtn').onclick       = exitGame;
         // Moedas
         const blink=(Date.now()/100|0)%2===0;
         coinsA.forEach(c=>{
-            if(c.got) return; const dx=c.x-cx; if(dx+c.w<0||dx>W) return;
+            if(c.got) return; const dx=c.x-cx; if(dx+32||dx>W) return;
             ctx.fillStyle=blink?'#ffd700':'#ffaa00';
             ctx.beginPath(); ctx.arc(dx+c.w/2,c.y+c.h/2,c.w/2,0,Math.PI*2); ctx.fill();
             ctx.fillStyle='rgba(0,0,0,0.2)'; ctx.fillRect(dx+c.w/2-2,c.y+4,4,c.h-8);
