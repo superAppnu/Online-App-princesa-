@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title👑>Princesa Emanuelly.B.P👑- Edição Lunar 🌙</title>
+<title>Princesa - Edição Lunar 🌙</title>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
@@ -100,7 +100,7 @@ html,body{background:#000;width:100%;height:100%;overflow:hidden;font-family:'Co
 <!-- TELA INICIAL -->
 <div id="startScreen" class="screen">
 <div class="card">
-  <h1>👑 PRINCESA EMANUELLY.B.P👑</h1>
+  <h1>👑 PRINCESA LUNAR 🌙</h1>
   <input type="text" id="playerName" placeholder="Seu nome" maxlength="15">
   <p style="color:#aaa;font-size:11px;margin:4px 0 0;">Seu código (fixo):</p>
   <div class="code-box"><span id="myCode">------</span></div>
@@ -312,8 +312,8 @@ function joinRoom(code){
     const sala=snap.val();
     if(!sala){alert('Sala não encontrada!');showScreen('startScreen');return;}
 
-    // Sala em andamento?
-    if(sala.go===true||sala.active===true){
+    // Sala em andamento? (só quando go===true significa que o jogo já começou)
+    if(sala.go===true){
       // Envia pedido de entrada
       otherId=sala.host; otherName=sala.hostName;
       roomRef.child('joinRequest').set({id:MY_CODE,name:name,status:'pending'});
@@ -1064,7 +1064,7 @@ function showPhaseResult(myC,otherC){
     msg+='\n➡ PRÓXIMA FASE!';
     alert(msg);
     if(phase<33){phase++;att=3;myPhaseReady=false;otherPhaseReady=false;phaseResultShown=false;loadPhase(phase);}
-    else{alert('🏆 PARABÉNS! VOCÊ ZEROU O JOGO! TE AMO MINHA BEBÊ ESSE JOGO O PAI VIVE MELHOR MOMENTO JUNTO COM VOCÊ FIZ COM AMOR E CARINHO PARA você 💝🫶👑💝🫶🏆');exitGame();}
+    else{alert('🏆 PARABÉNS! VOCÊ ZEROU O JOGO! 🏆');exitGame();}
   },delay+300);
 }
 
