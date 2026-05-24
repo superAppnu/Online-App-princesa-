@@ -191,7 +191,7 @@ html,body{background:#000;width:100%;height:100%;overflow:hidden;font-family:'Co
 <script>
 // ══════════════════════════════════════════
 // FIREBASE CONFIG — cole sua chave aqui
-// ══════════════════════════════════════════
+// ═══════════════════════════════════════
 const firebaseConfig = {
   apiKey: "AIzaSyAeRybVgZFjj6LhbPgYsVqpdl0eOIfVY5U",
   authDomain: "online-app-e95f6.firebaseapp.com",
@@ -201,7 +201,6 @@ const firebaseConfig = {
   messagingSenderId: "166050844176",
   appId: "1:166050844176:web:9ecee22f2ca3a703a78495"
 };
-
 let db=null,multiplayerOK=false;
 try{
   if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
@@ -260,7 +259,7 @@ function createRoom(){
   currentRoom=code; isHost=true; gameStarted=false;
 
   roomRef=db.ref('salas/'+code);
-  roomRef.set({host:MY_CODE,hostName:name,guestReady:false,go:false,active:true,t:Date.now()});
+  roomRef.set({host:MY_CODE,hostName:name,guestReady:false,go:false,active:false,t:Date.now()});
 
   // Escutar guest
   roomRef.child('guest').on('value',snap=>{
@@ -312,8 +311,8 @@ function joinRoom(code){
     const sala=snap.val();
     if(!sala){alert('Sala não encontrada!');showScreen('startScreen');return;}
 
-    // Sala em andamento? (só quando go===true significa que o jogo já começou)
-    if(sala.go===true){
+    // Sala em andamento?
+    if(sala.go===true||sala.active===true){
       // Envia pedido de entrada
       otherId=sala.host; otherName=sala.hostName;
       roomRef.child('joinRequest').set({id:MY_CODE,name:name,status:'pending'});
