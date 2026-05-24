@@ -772,6 +772,11 @@ let rainTimer=0;
 let lightningTimer=0;
 let lightningFlash=0;
 
+// ── RANDOM COM SEED (garante mesmo cenário nos dois dispositivos) ──
+let _seed=1;
+function seedRandom(s){_seed=s;}
+function rnd(){_seed=(_seed*1664525+1013904223)&0xffffffff;return((_seed>>>0)/0xffffffff);}
+
 function mkP(){return{x:150,y:GY()-38,w:34,h:38,vx:0,vy:0,onG:true,fr:true,inv:0};}
 let P=mkP();
 
@@ -855,30 +860,25 @@ const SKY_COLORS={
 
 // ── BUILD FASE ──
 function buildPhase(ph){
+  seedRandom(ph * 99991 + 7); // mesma seed para ambos os jogadores
   const GY_VAL=GY();
-  // Fases mais longas: mínimo 22000 pixels
   worldW=22000+ph*1500;
   const COLS=[["#4a90d9","#1a407a"],["#ff6b6b","#8b0000"],["#e066ff","#5d008b"],["#3ae3b5","#0a5c43"],["#ffb347","#b85300"]];
   const c=COLS[ph%COLS.length];
-  planet={x:200+Math.random()*400,y:40+Math.random()*90,r:70+Math.random()*70,c1:c[0],c2:c[1],ring:ph%2===0};
-  stars=Array.from({length:200},()=>({x:Math.random()*1800,y:Math.random()*canvas.height*0.75,s:Math.random()*2.5+0.5,a:Math.random(),sp:0.006+Math.random()*0.018}));
+  planet={x:200+rnd()*400,y:40+rnd()*90,r:70+rnd()*70,c1:c[0],c2:c[1],ring:ph%2===0};
+  stars=Array.from({length:200},()=>({x:rnd()*1800,y:rnd()*canvas.height*0.75,s:rnd()*2.5+0.5,a:rnd(),sp:0.006+rnd()*0.018}));
   shooting=[];
   phaseStartTime=Date.now();
 
   guard={x:worldW-250,y:GY_VAL-100,w:85,h:100,alive:true,hits:0,dir:-1,t:0};
   mush=ph>=8?{x:worldW-600,y:GY_VAL-65,w:40,h:40,done:false}:null;
 
-  // Chão lunar (base)
-  plats=[{x:0,y:GY_VAL,w:worldW,h:40}];
-
-  // Crateras/buracos no chão (estilo Mario — não há chão nesses trechos)
   const holes=[];
   for(let i=0;i<12+ph*2;i++){
-    const hx=1800+i*(worldW/14)+Math.random()*400;
-    const hw=80+Math.random()*80+ph*3;
+    const hx=1800+i*(worldW/14)+rnd()*400;
+    const hw=80+rnd()*80+ph*3;
     holes.push({x:hx,w:hw});
   }
-  // Substituir plataforma do chão por segmentos com buracos
   plats=[];
   let lastX=0;
   for(const h of holes){
@@ -887,24 +887,18 @@ function buildPhase(ph){
   }
   if(lastX<worldW) plats.push({x:lastX,y:GY_VAL,w:worldW-lastX,h:40,lunar:true});
 
-  // Plataformas flutuantes estilo Mario (blocos quadrados)
   const platColors=['#7c3f1a','#5a2d0c','#8b6914','#4a1a8a','#1a5a4a'];
-  // Escadas de plataformas (como Mario)
   for(let i=0;i<30+ph*2;i++){
     const px=400+i*470+ph*20;
     const py=GY_VAL-100-(i%6)*38;
     if(px<worldW-300){
-      const pw=64+Math.floor(Math.random()*3)*16;
+      const pw=64+Math.floor(rnd()*3)*16;
       plats.push({x:px,y:py,w:pw,h:20,color:platColors[i%platColors.length],mario:true});
-      // Escada dupla
       if(i%3===0) plats.push({x:px+pw+12,y:py-40,w:pw-16,h:20,color:platColors[(i+1)%platColors.length],mario:true});
-      // Bloco de moeda acima da plataforma
-      if(Math.random()>0.5) plats.push({x:px+pw/2-12,y:py-80,w:24,h:20,color:'#b8860b',mario:true,coin:true});
-      // Fase avançada: plataformas extras
+      if(rnd()>0.5) plats.push({x:px+pw/2-12,y:py-80,w:24,h:20,color:'#b8860b',mario:true,coin:true});
       if(ph>8&&i%4===0) plats.push({x:px+pw+90,y:py-70,w:56,h:20,color:platColors[(i+2)%platColors.length],mario:true});
     }
   }
-  // Mais plataformas em fases difíceis — necessário para alcançar
   if(ph>5){
     for(let i=0;i<15;i++){
       const px=800+i*900+ph*15;
@@ -913,69 +907,61 @@ function buildPhase(ph){
     }
   }
 
-  // Pedras lunares decorativas (não colidem, apenas visuais)
   moonRocks=[];
   for(let i=0;i<120;i++){
-    moonRocks.push({x:Math.random()*worldW,r:4+Math.random()*18,shade:Math.random()});
+    moonRocks.push({x:rnd()*worldW,r:4+rnd()*18,shade:rnd()});
   }
 
-  // Inimigos terrestres — muitos mais
   enems=[];
   const baseEnems=40+Math.floor(ph*3.5);
   for(let i=0;i<baseEnems;i++){
     const ex=300+i*400+ph*12;
     if(ex<worldW-400){
       const type=i%6;
-      enems.push({x:ex,y:GY_VAL-34,alive:true,type,dir:i%2?1:-1,fr:0,spd:0.7+ph*0.06+Math.random()*0.6});
+      enems.push({x:ex,y:GY_VAL-34,alive:true,type,dir:i%2?1:-1,fr:0,spd:0.7+ph*0.06+rnd()*0.6});
     }
   }
-  // Inimigos nas plataformas
   plats.forEach(pl=>{
-    if(pl.mario&&pl.y<GY_VAL-40&&Math.random()>0.4){
-      const type=Math.floor(Math.random()*6);
-      enems.push({x:pl.x+pl.w/2-16,y:pl.y-36,alive:true,type,dir:Math.random()>.5?1:-1,fr:0,spd:0.5+ph*0.05+Math.random()*0.5,onPlatX:{min:pl.x,max:pl.x+pl.w-32}});
+    if(pl.mario&&pl.y<GY_VAL-40&&rnd()>0.4){
+      const type=Math.floor(rnd()*6);
+      enems.push({x:pl.x+pl.w/2-16,y:pl.y-36,alive:true,type,dir:rnd()>.5?1:-1,fr:0,spd:0.5+ph*0.05+rnd()*0.5,onPlatX:{min:pl.x,max:pl.x+pl.w-32}});
     }
   });
 
-  // INIMIGOS VOADORES — muitos!
   flyEnemies=[];
   const flyCount=20+ph*3;
   for(let i=0;i<flyCount;i++){
     const ex=500+i*520+ph*18;
     if(ex<worldW-300){
-      const flyType=i%4; // 0=morcego, 1=fantasma, 2=alien, 3=meteoro
+      const flyType=i%4;
       const baseY=GY_VAL-140-(i%6)*35;
       flyEnemies.push({
-        x:ex, y:baseY, alive:true,
-        type:flyType, dir:i%2?1:-1,
-        spd:1.2+ph*0.08+Math.random()*0.8,
-        baseY:baseY, wave:Math.random()*Math.PI*2,
-        waveAmp:20+Math.random()*40,
-        waveSpd:0.025+Math.random()*0.02,
-        dive:false, diveTimer:0,
+        x:ex,y:baseY,alive:true,
+        type:flyType,dir:i%2?1:-1,
+        spd:1.2+ph*0.08+rnd()*0.8,
+        baseY:baseY,wave:rnd()*Math.PI*2,
+        waveAmp:20+rnd()*40,
+        waveSpd:0.025+rnd()*0.02,
+        dive:false,diveTimer:0,
       });
     }
   }
 
-  // Moedas — também nas plataformas
   coinsA=[];
   for(let i=0;i<400;i++){
     const cx2=150+(i*63)%(worldW-300);
     const cy2=GY_VAL-30;
     coinsA.push({x:cx2,y:cy2,w:18,h:18,got:false});
   }
-  // Moedas em cima de plataformas
   plats.forEach(pl=>{
-    if(pl.mario&&Math.random()>0.5){
+    if(pl.mario&&rnd()>0.5){
       for(let k=0;k<Math.floor(pl.w/22);k++)
         coinsA.push({x:pl.x+k*22,y:pl.y-22,w:18,h:18,got:false});
     }
   });
 
-  // Pássaros decorativos
-  birds=Array.from({length:14},()=>({x:Math.random()*(worldW+600),y:35+Math.random()*110,sp:0.5+Math.random()*0.8,wing:Math.random()*Math.PI*2,sz:4+Math.random()*5}));
+  birds=Array.from({length:14},()=>({x:rnd()*(worldW+600),y:35+rnd()*110,sp:0.5+rnd()*0.8,wing:rnd()*Math.PI*2,sz:4+rnd()*5}));
 
-  // Chuva
   rainDrops=[]; rainActive=false; rainTimer=0;
 }
 
