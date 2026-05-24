@@ -144,9 +144,9 @@
 
 <div id="gameContainer" class="hidden">
     <div class="info-panel">
-        <span>⭐ PRINCESA EMANUELLY.B.P</span>
+        <span>⭐ PRINCESA</span>
         <span id="ui_phase">FASE 1/33</span>
-        <span id="ui_lives">💖 3</span>
+        <span id="ui_lives">💖 33</span>
         <span id="ui_att">🎲 3/3</span>
         <span>🍄 <span id="ui_score">0</span></span>
         <span>🪙 <span id="ui_coins">0</span></span>
@@ -663,7 +663,7 @@ document.getElementById('exitBtn').onclick       = exitGame;
             [523,659,784,1047].forEach((f,i)=>setTimeout(()=>sfx(f,'square',0.3,0.18),i*110));
             setTimeout(()=>{
                 if(phase<33){ phase++; att=3; loadPhase(phase); }
-                else { alert('🏆 PARABÉNS! VOCÊ ZEROU O JOGO! PARABÉNS MINHA PRINCESA 🌹VOCÊ E ORGULHO DO PAPAI FIZ COM TODO AMOR DO MUNDO ESSE JOGUINHO PARA VOCÊ 🫶🫶🫶💝💝💝💝💝💝💝💝🫶🫶🫶!🏆'); exitGame(); }
+                else { alert('🏆 PARABÉNS! VOCÊ ZEROU O JOGO! 🏆'); exitGame(); }
             }, 600);
         }
     }
