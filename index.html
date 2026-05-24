@@ -10,73 +10,165 @@
 
     <style>
         * { margin:0; padding:0; box-sizing:border-box; user-select:none; -webkit-tap-highlight-color:transparent; }
-        body { background:#000; width:100%; height:100%; overflow:hidden; font-family:'Courier New',monospace; }
+        html, body { background:#000; width:100%; height:100%; overflow:hidden; font-family:'Courier New',monospace; }
 
-        .screen { position:fixed; top:0; left:0; width:100%; height:100%; background:linear-gradient(135deg,#1a0b2e,#4a154b); display:flex; justify-content:center; align-items:center; z-index:200; }
-        .card { background:rgba(0,0,0,0.85); border-radius:50px; padding:30px; text-align:center; border:3px solid #ff69b4; width:90%; max-width:380px; box-shadow:0 0 30px rgba(255,105,180,0.4); }
-        .card h1 { color:#ff69b4; font-size:28px; margin-bottom:20px; text-shadow:0 0 10px #ff69b4; }
-        .card input { width:90%; padding:15px; margin:10px 0; border-radius:50px; border:none; font-size:16px; text-align:center; background:#fff; }
-        .card button { border:none; padding:12px 20px; margin:8px; border-radius:50px; font-size:16px; font-weight:bold; cursor:pointer; transition:transform 0.1s; }
+        .screen { position:fixed; top:0; left:0; width:100%; height:100%;
+                  background:linear-gradient(135deg,#1a0b2e,#4a154b);
+                  display:flex; justify-content:center; align-items:center; z-index:200; }
+        .screen.hidden { display:none !important; }
+
+        .card { background:rgba(0,0,0,0.88); border-radius:50px; padding:30px;
+                text-align:center; border:3px solid #ff69b4; width:90%; max-width:380px;
+                box-shadow:0 0 30px rgba(255,105,180,0.4); }
+        .card h1 { color:#ff69b4; font-size:26px; margin-bottom:16px; text-shadow:0 0 10px #ff69b4; }
+        .card input { width:90%; padding:14px; margin:8px 0; border-radius:50px; border:none;
+                      font-size:16px; text-align:center; background:#fff; }
+        .card button { border:none; padding:12px 20px; margin:6px; border-radius:50px;
+                       font-size:15px; font-weight:bold; cursor:pointer; transition:transform 0.1s;
+                       font-family:'Courier New',monospace; }
         .card button:active { transform:scale(0.95); }
-        .btn-green { background:#44ff44; color:#000; }
+        .btn-green  { background:#44ff44; color:#000; }
         .btn-yellow { background:#ffcc00; color:#886600; }
-        .btn-blue { background:#4488ff; color:white; }
-        .btn-red { background:#ff4444; color:white; }
-        .btn-orange { background:#ff8800; color:white; }
-        .btn-purple { background:#aa44ff; color:white; }
+        .btn-blue   { background:#4488ff; color:#fff; }
+        .btn-red    { background:#ff4444; color:#fff; }
+        .btn-orange { background:#ff8800; color:#fff; }
 
-        .code-box { background:#111; padding:15px; border-radius:30px; margin:15px 0; border:1px solid #ff69b4; }
-        .code-box span { color:#ff69b4; font-size:32px; font-weight:bold; letter-spacing:5px; }
-        .waiting-status { background:#1a1a2a; padding:12px; border-radius:30px; margin:15px 0; color:#ffcc44; font-size:13px; }
+        .code-box { background:#111; padding:14px; border-radius:30px; margin:12px 0; border:1px solid #ff69b4; }
+        .code-box span { color:#ff69b4; font-size:30px; font-weight:bold; letter-spacing:5px; }
+        .waiting-status { background:#1a1a2a; padding:12px; border-radius:30px;
+                          margin:12px 0; color:#ffcc44; font-size:13px; line-height:1.5; }
 
-        /* ── GAME CONTAINER ── */
-        .game-container { width:100%; height:100%; display:flex; flex-direction:column; background:#020208; position:fixed; top:0; left:0; }
-        .game-container.hidden { display:none; }
-        canvas { display:block; width:100%; flex:1; background:#000; }
-        .info-panel { display:flex; justify-content:space-between; background:#000; padding:8px 15px; color:#ffefb9; font-size:11px; flex-wrap:wrap; gap:5px; border-bottom:2px solid #ff69b4; }
-        .info-panel span { background:#111; padding:3px 10px; border-radius:20px; border:1px solid rgba(255,105,180,0.3); }
-        .touch-controls { display:flex; justify-content:center; gap:20px; padding:12px; background:#000; border-top:2px solid #ff69b4; }
-        .btn { width:70px; height:70px; border-radius:60px; font-size:32px; border:none; cursor:pointer; box-shadow:0 4px 0 rgba(0,0,0,0.3); }
-        .btn:active { transform:translateY(2px); }
-        .btn-left,.btn-right { background:radial-gradient(#ffcc77,#ffaa33); color:#6b3a00; }
-        .btn-jump { background:radial-gradient(#ff88aa,#ff4466); color:white; width:80px; }
-        .btn-torch { background:radial-gradient(#ffaa66,#ff6600); color:white; width:80px; font-size:26px; }
-        @media(max-width:550px){
-            .btn{width:55px;height:55px;font-size:24px;}
-            .btn-jump,.btn-torch{width:65px;font-size:20px;}
-            .info-panel{font-size:9px;padding:6px 8px;}
-            .card{padding:20px;border-radius:40px;}
-            .card h1{font-size:24px;}
-            .code-box span{font-size:26px;}
+        /* ── JOGO ── */
+        #gameContainer { position:fixed; top:0; left:0; width:100%; height:100%;
+                         display:flex; flex-direction:column; background:#000; z-index:100; }
+        #gameContainer.hidden { display:none !important; }
+
+        #gameCanvas { display:block; width:100%; flex:1; min-height:0; }
+
+        .info-panel { display:flex; justify-content:space-between; align-items:center;
+                      background:#000; padding:6px 12px; color:#ffefb9; font-size:10px;
+                      flex-wrap:wrap; gap:4px; border-bottom:2px solid #ff69b4; flex-shrink:0; }
+        .info-panel span { background:#111; padding:2px 8px; border-radius:20px;
+                           border:1px solid rgba(255,105,180,0.3); white-space:nowrap; }
+
+        .touch-controls { display:flex; justify-content:center; gap:16px; padding:10px;
+                          background:#000; border-top:2px solid #ff69b4; flex-shrink:0; }
+        .gbtn { border-radius:50%; font-size:28px; border:none; cursor:pointer;
+                box-shadow:0 4px 0 rgba(0,0,0,0.4); width:64px; height:64px; }
+        .gbtn:active { transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,0.4); }
+        .gbtn-lr   { background:radial-gradient(#ffcc77,#ffaa33); color:#6b3a00; }
+        .gbtn-jump { background:radial-gradient(#ff88aa,#ff4466); color:#fff; width:72px; height:72px; }
+        .gbtn-fire { background:radial-gradient(#ffaa66,#ff6600); color:#fff; width:72px; height:72px; font-size:24px; }
+
+        @media(max-width:480px){
+            .gbtn{width:52px;height:52px;font-size:22px;}
+            .gbtn-jump,.gbtn-fire{width:60px;height:60px;font-size:20px;}
+            .info-panel{font-size:8px;padding:4px 6px;}
+            .card{padding:18px;} .card h1{font-size:22px;} .code-box span{font-size:24px;}
         }
-        .controls-footer { text-align:center; padding:6px; color:#e6c88a; font-size:10px; background:rgba(0,0,0,0.5); }
-        .exit-btn { position:fixed; top:10px; right:10px; background:#ff4444; color:white; border:none; padding:8px 16px; border-radius:30px; z-index:150; display:none; cursor:pointer; font-family:'Courier New',monospace; font-weight:bold; }
-        .connection-status { position:fixed; bottom:10px; left:10px; background:rgba(0,0,0,0.7); color:#0f0; padding:4px 8px; border-radius:20px; font-size:10px; z-index:150; }
 
-        /* ── POPUPS ── */
-        .popup { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:linear-gradient(135deg,#1a1a2a,#2a2a3a); border:3px solid #ff69b4; border-radius:50px; padding:30px; text-align:center; z-index:350; display:none; min-width:300px; max-width:90vw; }
-        .popup p { color:#fff; font-size:16px; margin-bottom:10px; }
-        .popup button { padding:12px 25px; margin:10px; border-radius:40px; font-weight:bold; cursor:pointer; border:none; font-size:15px; }
-        .accept-btn { background:#44ff44; }
-        .reject-btn { background:#ff4444; color:white; }
-        .save-yes { background:#44ff44; }
-        .save-no { background:#ff4444; color:white; }
+        .controls-footer { text-align:center; padding:4px; color:#e6c88a;
+                           font-size:9px; background:rgba(0,0,0,0.6); flex-shrink:0; }
+        #exitBtn { position:fixed; top:8px; right:8px; background:#ff4444; color:#fff;
+                   border:none; padding:7px 14px; border-radius:30px; z-index:300;
+                   display:none; cursor:pointer; font-family:'Courier New',monospace; font-weight:bold; font-size:13px; }
 
-        /* ── FIREBASE CONFIG BOX ── */
-        #firebaseSetupScreen .card textarea {
-            width:90%; height:120px; margin:10px 0; border-radius:20px; padding:10px; font-family:monospace; font-size:12px; resize:vertical;
-        }
-        #firebaseSetupScreen .hint { color:#aaa; font-size:11px; margin:5px 0; }
+        /* status */
+        #statusBar { position:fixed; bottom:8px; left:8px; background:rgba(0,0,0,0.75);
+                     color:#0f0; padding:3px 8px; border-radius:20px; font-size:9px; z-index:300; }
+
+        /* popups */
+        .popup { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+                 background:linear-gradient(135deg,#1a1a2a,#2a2a3a); border:3px solid #ff69b4;
+                 border-radius:44px; padding:28px; text-align:center; z-index:400;
+                 display:none; width:90%; max-width:320px; }
+        .popup.show { display:block; }
+        .popup p { color:#fff; font-size:15px; margin-bottom:8px; line-height:1.5; }
+        .popup button { padding:11px 22px; margin:8px; border-radius:40px; font-weight:bold;
+                        cursor:pointer; border:none; font-size:14px; font-family:'Courier New',monospace; }
     </style>
 </head>
 <body>
 
-<!-- ═══════════════════════════════════════════
-     TELA: CONFIGURAR FIREBASE (aparece se não configurado)
-════════════════════════════════════════════ -->
-<div id="firebaseSetupScreen" class="screen" style="display:none;">
+<!-- ════════════ TELA INICIAL ════════════ -->
+<div id="startScreen" class="screen">
     <div class="card">
-        <h1>🔧 FIREBASE</h1>
+        <h1>👑 PRINCESA 👑</h1>
+        <input type="text" id="playerName" placeholder="Seu nome" maxlength="15">
+        <p style="color:#aaa;font-size:11px;margin:4px 0 0;">Seu código (fixo):</p>
+        <div class="code-box"><span id="myCode">------</span></div>
+        <button id="copyCodeBtn"   class="btn-orange">📋 COPIAR CÓDIGO</button>
+        <button id="createRoomBtn" class="btn-green" >🎮 CRIAR SALA</button>
+        <button id="joinRoomBtn"   class="btn-blue"  >🔗 ENTRAR EM SALA</button>
+        <button id="soloBtn"       class="btn-yellow">🎮 JOGAR SOZINHO</button>
+    </div>
+</div>
+
+<!-- ════════════ TELA: DIGITAR CÓDIGO ════════════ -->
+<div id="joinCodeScreen" class="screen hidden">
+    <div class="card">
+        <h1>🔗 ENTRAR NA SALA</h1>
+        <input type="text" id="roomCodeInput" placeholder="Código de 6 dígitos"
+               maxlength="6" inputmode="numeric" pattern="[0-9]*">
+        <br>
+        <button id="confirmJoinBtn" class="btn-green">✅ ENTRAR</button>
+        <button id="cancelJoinBtn"  class="btn-red"  >🔙 VOLTAR</button>
+    </div>
+</div>
+
+<!-- ════════════ LOBBY ════════════ -->
+<div id="lobbyScreen" class="screen hidden">
+    <div class="card">
+        <h1 id="lobbyTitle">👥 AGUARDANDO...</h1>
+        <div class="code-box"><span id="lobbyCode">------</span></div>
+        <div class="waiting-status" id="lobbyMsg">🟡 Aguardando...</div>
+        <div id="lobbyConnected" style="color:#44ff44;margin:8px 0;font-size:13px;"></div>
+        <!-- HOST vê este botão após guest confirmar -->
+        <button id="startGameBtn"  class="btn-green" style="display:none;">▶ INICIAR JOGO</button>
+        <!-- GUEST vê este botão ao entrar -->
+        <button id="guestReadyBtn" class="btn-blue"  style="display:none;">✅ ESTOU PRONTO!</button>
+        <button id="cancelRoomBtn" class="btn-red"   >🚪 CANCELAR</button>
+    </div>
+</div>
+
+<!-- ════════════ POPUPS ════════════ -->
+<div id="saveFriendPopup" class="popup">
+    <p>Salvar <span id="saveFriendName" style="color:#ff69b4;font-weight:bold;font-size:18px;"></span> como amigo?</p>
+    <button id="saveYesBtn" style="background:#44ff44;">✅ SIM</button>
+    <button id="saveNoBtn"  style="background:#ff4444;color:#fff;">❌ NÃO</button>
+</div>
+
+<!-- ════════════ JOGO ════════════ -->
+<button id="exitBtn">🚪 SAIR</button>
+<div id="statusBar">🔌 Offline</div>
+
+<div id="gameContainer" class="hidden">
+    <div class="info-panel">
+        <span>⭐ PRINCESA</span>
+        <span id="ui_phase">FASE 1/33</span>
+        <span id="ui_lives">💖 33</span>
+        <span id="ui_att">🎲 3/3</span>
+        <span>🍄 <span id="ui_score">0</span></span>
+        <span>🪙 <span id="ui_coins">0</span></span>
+        <span>🔥∞</span>
+        <span id="ui_friend" style="color:#44ff44;display:none;"></span>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+    <div class="touch-controls">
+        <button id="btnLeft"  class="gbtn gbtn-lr">◀</button>
+        <button id="btnRight" class="gbtn gbtn-lr">▶</button>
+        <button id="btnJump"  class="gbtn gbtn-jump">⭐</button>
+        <button id="btnFire"  class="gbtn gbtn-fire">🔥</button>
+    </div>
+    <div class="controls-footer">Toque nos botões · 🔥 Tocha infinita · Guardião: 50 tochas</div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+//  🔧 COLE SUA CHAVE API DO FIREBASE AQUI ABAIXO
+//  Cole o objeto firebaseConfig completo conforme aparece
+//  no console do Firebase (Configurações do projeto)
+// ══════════════════════════════════════════════════════════
 const firebaseConfig = {
   apiKey: "AIzaSyAeRybVgZFjj6LhbPgYsVqpdl0eOIfVY5U",
   authDomain: "online-app-e95f6.firebaseapp.com",
@@ -84,467 +176,276 @@ const firebaseConfig = {
   projectId: "online-app-e95f6",
   storageBucket: "online-app-e95f6.firebasestorage.app",
   messagingSenderId: "166050844176",
-  appId: "1:166050844176:web:9ecee22f2ca3a703a7849
-{
-<!-- ═══════════════════════════════════════════
-     TELA: INÍCIO
-════════════════════════════════════════════ -->
-<div id="startScreen" class="screen">
-    <div class="card">
-        <h1>👑 PRINCESA 👑</h1>
-        <input type="text" id="playerName" placeholder="Seu nome" maxlength="15" value="">
-        <p style="color:#aaa;font-size:11px;margin:2px 0;">Seu código fixo:</p>
-        <div class="code-box"><span id="myCode">------</span></div>
-        <button id="copyCodeBtn" class="btn-orange">📋 COPIAR CÓDIGO</button>
-        <button id="createRoomBtn" class="btn-green">🎮 CRIAR SALA</button>
-        <button id="joinRoomBtn" class="btn-blue">🔗 ENTRAR EM SALA</button>
-        <button id="soloBtn" class="btn-yellow">🎮 JOGAR SOZINHO</button>
-        <button id="configFirebaseBtn" class="btn-purple" style="font-size:12px;padding:8px 16px;margin-top:5px;">⚙️ Config. Firebase</button>
-    </div>
-</div>
+  appId: "1:166050844176:web:9ecee22f2ca3a703a78495"
+};
+// ══════════════════════════════════════════════════════════
 
-<!-- ═══════════════════════════════════════════
-     TELA: DIGITAR CÓDIGO DA SALA
-════════════════════════════════════════════ -->
-<div id="joinCodeScreen" class="screen" style="display:none;">
-    <div class="card">
-        <h1>🔗 ENTRAR NA SALA</h1>
-        <input type="text" id="roomCodeInput" placeholder="Código de 6 dígitos" maxlength="6" inputmode="numeric">
-        <button id="confirmJoinBtn" class="btn-green">✅ ENTRAR</button>
-        <button id="cancelJoinBtn" class="btn-red">🔙 VOLTAR</button>
-    </div>
-</div>
-
-<!-- ═══════════════════════════════════════════
-     TELA: LOBBY (aguardando / confirmando)
-════════════════════════════════════════════ -->
-<div id="lobbyScreen" class="screen" style="display:none;">
-    <div class="card">
-        <h1 id="lobbyTitle">👥 AGUARDANDO...</h1>
-        <div class="code-box"><span id="lobbyCodeDisplay">------</span></div>
-        <div class="waiting-status" id="waitingMsg">🟡 Aguardando amigo...</div>
-        <div id="playerConnectedMsg" style="color:#44ff44;margin:10px 0;"></div>
-
-        <!-- Botão só para o HOST confirmar início -->
-        <button id="startGameBtn" class="btn-green" style="display:none;">▶ INICIAR JOGO</button>
-
-        <!-- Botão só para o GUEST confirmar que está pronto -->
-        <button id="guestReadyBtn" class="btn-blue" style="display:none;">✅ ESTOU PRONTO!</button>
-
-        <button id="cancelRoomBtn" class="btn-red">🚪 CANCELAR</button>
-    </div>
-</div>
-
-<!-- ═══════════════════════════════════════════
-     OVERLAYS
-════════════════════════════════════════════ -->
-<div id="connectionStatus" class="connection-status">🔌 Offline</div>
-
-<!-- Popup: convidado recebeu pedido -->
-<div id="friendRequestPopup" class="popup">
-    <p><span id="requesterName" style="color:#ff69b4;font-size:22px;font-weight:bold;">Amigo</span><br>quer jogar com você!</p>
-    <button id="acceptRequestBtn" class="accept-btn">✅ ACEITAR</button>
-    <button id="rejectRequestBtn" class="reject-btn">❌ RECUSAR</button>
-</div>
-
-<!-- Popup: salvar amigo -->
-<div id="saveFriendPopup" class="popup">
-    <p>Deseja salvar <span id="saveFriendName" style="color:#ff69b4;font-size:22px;font-weight:bold;">Amigo</span> como amigo?</p>
-    <button id="saveYesBtn" class="save-yes">✅ SIM, SALVAR</button>
-    <button id="saveNoBtn" class="save-no">❌ NÃO</button>
-</div>
-
-<!-- Botão sair do jogo -->
-<button id="exitGameBtn" class="exit-btn">🚪 SAIR</button>
-
-<!-- ═══════════════════════════════════════════
-     JOGO
-════════════════════════════════════════════ -->
-<div class="game-container hidden" id="gameContainer">
-    <div class="info-panel">
-        <span>⭐ PRINCESA ⭐</span>
-        <span id="phaseText">FASE 1/33</span>
-        <span id="globalLivesText">💖 33</span>
-        <span id="chanceText">🎲 3/3</span>
-        <span>🍄 <span id="scoreText">0</span></span>
-        <span>🪙 <span id="coinText">0</span></span>
-        <span>🔥 ∞</span>
-        <span id="friendNameDisplay" style="color:#44ff44;background:#000;padding:3px 10px;border-radius:20px;"></span>
-    </div>
-    <canvas id="gameCanvas"></canvas>
-    <div class="touch-controls">
-        <div class="dpad" style="display:flex;gap:8px;">
-            <button id="leftBtn" class="btn btn-left">◀</button>
-            <button id="rightBtn" class="btn btn-right">▶</button>
-        </div>
-        <div class="right-actions" style="display:flex;gap:8px;">
-            <button id="jumpBtn" class="btn btn-jump">⭐</button>
-            <button id="torchBtn" class="btn btn-torch">🔥</button>
-        </div>
-    </div>
-    <div class="controls-footer">👆 Toque nos botões | 🔥 TOCHA INFINITA | 🤖 GUARDIÃO: 50 tochas</div>
-</div>
-
-<script>
-// ═══════════════════════════════════════════════════════════════════
-// UTILITÁRIOS
-// ═══════════════════════════════════════════════════════════════════
-function showStatus(msg, color) {
-    const el = document.getElementById('connectionStatus');
-    el.innerHTML = msg;
-    el.style.background = color || 'rgba(0,0,0,0.7)';
+// ── Firebase init ──────────────────────────────────────────
+let db = null;
+let multiplayerOK = false;
+try {
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+    multiplayerOK = true;
+    setStatus('✅ Online', '#004400');
+} catch(e) {
+    setStatus('⚠️ Sem Firebase (solo)', '#442200');
 }
 
-function hideAllScreens() {
-    ['startScreen','joinCodeScreen','lobbyScreen','firebaseSetupScreen'].forEach(id => {
-        document.getElementById(id).style.display = 'none';
-    });
+function setStatus(msg, bg) {
+    const el = document.getElementById('statusBar');
+    el.textContent = msg;
+    if (bg) el.style.background = bg;
 }
 
+// ── Utilitários de tela ────────────────────────────────────
 function showScreen(id) {
-    hideAllScreens();
-    document.getElementById(id).style.display = 'flex';
+    ['startScreen','joinCodeScreen','lobbyScreen'].forEach(s => {
+        document.getElementById(s).classList.add('hidden');
+    });
+    if (id) document.getElementById(id).classList.remove('hidden');
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// CÓDIGO FIXO DO JOGADOR (salvo em localStorage)
-// ═══════════════════════════════════════════════════════════════════
-function getOrCreatePlayerCode() {
-    let code = localStorage.getItem('princesa_myCode');
-    if (!code || code.length !== 6) {
-        code = Math.floor(100000 + Math.random() * 900000).toString();
-        localStorage.setItem('princesa_myCode', code);
+// ── Código fixo do jogador ─────────────────────────────────
+function getMyCode() {
+    let c = localStorage.getItem('princesa_code');
+    if (!c || c.length !== 6) {
+        c = String(Math.floor(100000 + Math.random() * 900000));
+        localStorage.setItem('princesa_code', c);
     }
-    return code;
+    return c;
 }
+const MY_CODE = getMyCode();
+document.getElementById('myCode').textContent = MY_CODE;
 
-function getOrCreatePlayerName() {
-    return localStorage.getItem('princesa_myName') || '';
-}
-
-const MY_CODE = getOrCreatePlayerCode();
-document.getElementById('myCode').innerHTML = MY_CODE;
-
-// Pré-preencher nome salvo
-const savedName = getOrCreatePlayerName();
+// Restaurar nome salvo
+const savedName = localStorage.getItem('princesa_name') || '';
 if (savedName) document.getElementById('playerName').value = savedName;
-
-document.getElementById('playerName').addEventListener('change', function() {
-    localStorage.setItem('princesa_myName', this.value.trim());
+document.getElementById('playerName').addEventListener('input', function() {
+    localStorage.setItem('princesa_name', this.value.trim());
 });
 
-// ═══════════════════════════════════════════════════════════════════
-// FIREBASE
-// ═══════════════════════════════════════════════════════════════════
-let db = null;
-let multiplayerAvailable = false;
-
-function tryInitFirebase() {
-    const stored = localStorage.getItem('princesa_firebaseConfig');
-    if (!stored) return false;
-    try {
-        const cfg = JSON.parse(stored);
-        if (!firebase.apps.length) firebase.initializeApp(cfg);
-        else firebase.app(); // already init
-        db = firebase.database();
-        multiplayerAvailable = true;
-        showStatus('✅ Firebase OK', 'rgba(0,100,0,0.8)');
-        return true;
-    } catch(e) {
-        showStatus('⚠️ Firebase erro', 'rgba(150,0,0,0.8)');
-        return false;
-    }
-}
-
-tryInitFirebase();
-
-document.getElementById('saveFirebaseBtn').onclick = () => {
-    const raw = document.getElementById('firebaseConfigInput').value.trim();
-    try {
-        const cfg = JSON.parse(raw);
-        localStorage.setItem('princesa_firebaseConfig', JSON.stringify(cfg));
-        if (!firebase.apps.length) firebase.initializeApp(cfg);
-        db = firebase.database();
-        multiplayerAvailable = true;
-        showStatus('✅ Firebase salvo!', 'rgba(0,100,0,0.8)');
-        showScreen('startScreen');
-    } catch(e) {
-        alert('❌ JSON inválido. Verifique e tente novamente.');
-    }
-};
-
-document.getElementById('skipFirebaseBtn').onclick = () => showScreen('startScreen');
-document.getElementById('configFirebaseBtn').onclick = () => showScreen('firebaseSetupScreen');
-
-// ═══════════════════════════════════════════════════════════════════
-// ESTADO MULTIPLAYER
-// ═══════════════════════════════════════════════════════════════════
-let currentRoomId = null;
+// ── Estado multiplayer ─────────────────────────────────────
+let roomRef = null, myPosRef = null, otherPosRef = null;
 let isHost = false;
-let myPlayerId = null;
-let otherPlayerId = null;
-let otherPlayerNameFB = null;
-let roomRef = null;
-let myPosRef = null;
-let otherPosRef = null;
-let gameAlreadyStarted = false;
-let guestConfirmed = false;
+let currentRoom = null;
+let otherName = null, otherId = null;
+let gameStarted = false;
+let remotePos = { x: 150, y: 370, fr: true };
+window.isMP = false;
+window.otherName = null;
 
-let remotePlayerData = { x:300, y:430, facingRight:true };
-
-window.isMultiplayerActive = false;
-window.otherPlayerGlobal = null;
-
-// ═══════════════════════════════════════════════════════════════════
-// CRIAR SALA
-// ═══════════════════════════════════════════════════════════════════
-function createMultiplayerRoom() {
+// ── CRIAR SALA ─────────────────────────────────────────────
+function createRoom() {
     const name = document.getElementById('playerName').value.trim();
-    if (!name) { alert('❌ Digite seu nome!'); return; }
-    if (!multiplayerAvailable || !db) { alert('❌ Configure o Firebase primeiro!'); return; }
+    if (!name) { alert('Digite seu nome!'); return; }
+    if (!multiplayerOK) { alert('Firebase não configurado. Use modo solo.'); return; }
+    localStorage.setItem('princesa_name', name);
 
-    localStorage.setItem('princesa_myName', name);
-    const roomCode = Math.floor(100000 + Math.random() * 900000).toString();
-    currentRoomId = roomCode;
-    isHost = true;
-    myPlayerId = MY_CODE;
-    gameAlreadyStarted = false;
-    guestConfirmed = false;
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    currentRoom = code; isHost = true; gameStarted = false;
 
-    roomRef = db.ref(`salas/${roomCode}`);
-    roomRef.set({
-        hostId: MY_CODE,
-        hostName: name,
-        status: 'waiting',
-        guestReady: false,
-        gameStarted: false,
-        createdAt: Date.now()
-    });
+    roomRef = db.ref('salas/' + code);
+    roomRef.set({ host: MY_CODE, hostName: name, guestReady: false, go: false, t: Date.now() });
 
-    // Detectar quando convidado entrou
+    // Ouvir guest
     roomRef.child('guest').on('value', snap => {
-        const guest = snap.val();
-        if (guest && guest.id && !guestConfirmed) {
-            otherPlayerId = guest.id;
-            otherPlayerNameFB = guest.name;
-            document.getElementById('playerConnectedMsg').innerHTML = `🎮 ${otherPlayerNameFB} entrou!`;
-            document.getElementById('waitingMsg').innerHTML = `🟢 ${otherPlayerNameFB} está no lobby. Aguardando ele confirmar...`;
-            showStatus(`👥 ${otherPlayerNameFB} conectado`, 'rgba(0,80,0,0.9)');
+        const g = snap.val();
+        if (g && g.id && g.id !== MY_CODE) {
+            otherId = g.id; otherName = g.name;
+            document.getElementById('lobbyConnected').textContent = '🎮 ' + otherName + ' entrou!';
+            document.getElementById('lobbyMsg').textContent = 'Aguardando ' + otherName + ' clicar PRONTO...';
+            setStatus('👥 ' + otherName + ' conectado', '#003300');
         }
     });
-
-    // Detectar quando convidado clicou "Estou Pronto"
+    // Ouvir guest pronto
     roomRef.child('guestReady').on('value', snap => {
-        if (snap.val() === true && isHost && !gameAlreadyStarted) {
-            document.getElementById('waitingMsg').innerHTML = `✅ ${otherPlayerNameFB} está pronto! Clique INICIAR JOGO.`;
-            document.getElementById('startGameBtn').style.display = 'block';
+        if (snap.val() === true && isHost && !gameStarted) {
+            document.getElementById('lobbyMsg').textContent = '✅ ' + (otherName||'Convidado') + ' está pronto! Clique INICIAR.';
+            document.getElementById('startGameBtn').style.display = 'inline-block';
         }
     });
-
-    // Detectar início do jogo (para quando host inicia)
-    roomRef.child('gameStarted').on('value', snap => {
-        if (snap.val() === true && !gameAlreadyStarted) {
-            actuallyStartGame();
-        }
+    // Ouvir sinal de início
+    roomRef.child('go').on('value', snap => {
+        if (snap.val() === true && !gameStarted) launchGame();
     });
 
-    document.getElementById('lobbyTitle').innerHTML = '🎮 SUA SALA';
-    document.getElementById('lobbyCodeDisplay').innerHTML = roomCode;
-    document.getElementById('waitingMsg').innerHTML = `🟡 Compartilhe o código: <strong>${roomCode}</strong>`;
+    document.getElementById('lobbyTitle').textContent = '🎮 SUA SALA';
+    document.getElementById('lobbyCode').textContent = code;
+    document.getElementById('lobbyMsg').textContent = 'Compartilhe o código: ' + code;
     document.getElementById('startGameBtn').style.display = 'none';
     document.getElementById('guestReadyBtn').style.display = 'none';
     showScreen('lobbyScreen');
-    showStatus(`🟡 Sala: ${roomCode}`, 'rgba(100,80,0,0.9)');
+    setStatus('🟡 Sala ' + code, '#333300');
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// ENTRAR EM SALA
-// ═══════════════════════════════════════════════════════════════════
-function joinRoom(roomCode) {
+// ── ENTRAR EM SALA ─────────────────────────────────────────
+function joinRoom(code) {
     const name = document.getElementById('playerName').value.trim();
-    if (!name) { alert('❌ Digite seu nome!'); return; }
-    if (!multiplayerAvailable || !db) { alert('❌ Configure o Firebase primeiro!'); return; }
+    if (!name) { alert('Digite seu nome!'); return; }
+    if (!multiplayerOK) { alert('Firebase não configurado.'); return; }
+    localStorage.setItem('princesa_name', name);
 
-    localStorage.setItem('princesa_myName', name);
-    currentRoomId = roomCode;
-    isHost = false;
-    myPlayerId = MY_CODE;
-    gameAlreadyStarted = false;
+    currentRoom = code; isHost = false; gameStarted = false;
+    roomRef = db.ref('salas/' + code);
 
-    roomRef = db.ref(`salas/${roomCode}`);
     roomRef.once('value', snap => {
         const sala = snap.val();
-        if (!sala) { alert('❌ Sala não encontrada!'); showScreen('startScreen'); return; }
+        if (!sala) { alert('Sala não encontrada!'); showScreen('startScreen'); return; }
+        otherId = sala.host; otherName = sala.hostName;
 
-        otherPlayerId = sala.hostId;
-        otherPlayerNameFB = sala.hostName;
-
-        // Registrar como guest
         roomRef.child('guest').set({ id: MY_CODE, name: name });
 
-        document.getElementById('lobbyTitle').innerHTML = '🔗 CONECTADO';
-        document.getElementById('lobbyCodeDisplay').innerHTML = roomCode;
-        document.getElementById('playerConnectedMsg').innerHTML = `🎮 Host: ${otherPlayerNameFB}`;
-        document.getElementById('waitingMsg').innerHTML = `Conectado a ${otherPlayerNameFB}. Quando estiver pronto, clique no botão abaixo!`;
+        document.getElementById('lobbyTitle').textContent = '🔗 CONECTADO';
+        document.getElementById('lobbyCode').textContent = code;
+        document.getElementById('lobbyConnected').textContent = '🎮 Host: ' + otherName;
+        document.getElementById('lobbyMsg').textContent = 'Conectado! Clique PRONTO quando quiser começar.';
         document.getElementById('startGameBtn').style.display = 'none';
-        document.getElementById('guestReadyBtn').style.display = 'block'; // GUEST vê esse botão
+        document.getElementById('guestReadyBtn').style.display = 'inline-block';
         showScreen('lobbyScreen');
-        showStatus(`👥 Conectado a ${otherPlayerNameFB}`, 'rgba(0,80,0,0.9)');
+        setStatus('👥 Conectado a ' + otherName, '#003300');
 
-        // Escutar início do jogo pelo host
-        roomRef.child('gameStarted').on('value', snap => {
-            if (snap.val() === true && !gameAlreadyStarted) {
-                actuallyStartGame();
-            }
+        roomRef.child('go').on('value', snap => {
+            if (snap.val() === true && !gameStarted) launchGame();
         });
     });
 }
 
-// Guest confirma que está pronto
+// Guest clica PRONTO
 document.getElementById('guestReadyBtn').onclick = () => {
-    if (roomRef) {
-        roomRef.child('guestReady').set(true);
-        document.getElementById('guestReadyBtn').style.display = 'none';
-        document.getElementById('waitingMsg').innerHTML = `✅ Pronto! Aguardando o host iniciar...`;
-        showStatus('⏳ Aguardando host...', 'rgba(0,60,100,0.9)');
-    }
+    if (!roomRef) return;
+    roomRef.child('guestReady').set(true);
+    document.getElementById('guestReadyBtn').style.display = 'none';
+    document.getElementById('lobbyMsg').textContent = '⏳ Pronto! Aguardando host iniciar...';
+    setStatus('⏳ Aguardando host...', '#003355');
 };
 
-// Host inicia o jogo
+// Host clica INICIAR
 document.getElementById('startGameBtn').onclick = () => {
-    if (isHost && roomRef) {
-        roomRef.child('gameStarted').set(true);
-    }
+    if (isHost && roomRef) roomRef.child('go').set(true);
 };
 
-// ═══════════════════════════════════════════════════════════════════
-// INICIAR JOGO (ambos os lados executam isso)
-// ═══════════════════════════════════════════════════════════════════
-function actuallyStartGame() {
-    if (gameAlreadyStarted) return;
-    gameAlreadyStarted = true;
+// ── INICIAR JOGO (multiplayer) ─────────────────────────────
+function launchGame() {
+    if (gameStarted) return;
+    gameStarted = true;
 
-    myPosRef = roomRef.child(`players/${myPlayerId}`);
-    otherPosRef = roomRef.child(`players/${otherPlayerId}`);
-
-    myPosRef.set({ x: 150, y: 392, facingRight: true });
+    myPosRef    = roomRef.child('pos/' + MY_CODE);
+    otherPosRef = roomRef.child('pos/' + otherId);
+    myPosRef.set({ x: 150, y: 370, fr: true });
 
     otherPosRef.on('value', snap => {
         const d = snap.val();
-        if (d) { remotePlayerData.x = d.x||300; remotePlayerData.y = d.y||392; remotePlayerData.facingRight = d.facingRight!==false; }
+        if (d) { remotePos.x = d.x || 150; remotePos.y = d.y || 370; remotePos.fr = d.fr !== false; }
     });
 
-    window.isMultiplayerActive = true;
-    window.otherPlayerGlobal = otherPlayerNameFB;
+    window.isMP = true;
+    window.otherName = otherName;
+    document.getElementById('ui_friend').textContent = '👥 ' + otherName;
+    document.getElementById('ui_friend').style.display = '';
 
-    document.getElementById('friendNameDisplay').innerHTML = `👥 ${otherPlayerNameFB}`;
-    document.getElementById('exitGameBtn').style.display = 'block';
-    showScreen('_none');
+    showScreen(null);
     document.getElementById('gameContainer').classList.remove('hidden');
-    showStatus(`👥 Jogando com ${otherPlayerNameFB}`, 'rgba(0,80,0,0.9)');
+    document.getElementById('exitBtn').style.display = 'block';
+    setStatus('👥 Jogando com ' + otherName, '#003300');
 
-    // Perguntar salvar amigo após 3 segundos
     setTimeout(() => {
-        document.getElementById('saveFriendName').innerHTML = otherPlayerNameFB;
-        document.getElementById('saveFriendPopup').style.display = 'block';
+        document.getElementById('saveFriendName').textContent = otherName;
+        document.getElementById('saveFriendPopup').classList.add('show');
     }, 3000);
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// MODO SOLO
-// ═══════════════════════════════════════════════════════════════════
+// ── MODO SOLO ──────────────────────────────────────────────
 function startSolo() {
     const name = document.getElementById('playerName').value.trim();
-    if (!name) { alert('❌ Digite seu nome!'); return; }
-    localStorage.setItem('princesa_myName', name);
-    window.isMultiplayerActive = false;
-    window.otherPlayerGlobal = null;
-    document.getElementById('exitGameBtn').style.display = 'block';
-    showScreen('_none');
+    if (!name) { alert('Digite seu nome!'); return; }
+    localStorage.setItem('princesa_name', name);
+    window.isMP = false; window.otherName = null;
+    showScreen(null);
     document.getElementById('gameContainer').classList.remove('hidden');
+    document.getElementById('exitBtn').style.display = 'block';
+    setStatus('🎮 Solo', '#222233');
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// SAIR / RESETAR
-// ═══════════════════════════════════════════════════════════════════
+// ── SAIR ───────────────────────────────────────────────────
 function exitGame() {
-    if (roomRef && isHost && currentRoomId) db.ref(`salas/${currentRoomId}`).remove();
-    roomRef = null;
-    gameAlreadyStarted = false;
-    window.isMultiplayerActive = false;
-    window.otherPlayerGlobal = null;
+    if (roomRef) { if (isHost && currentRoom) db.ref('salas/' + currentRoom).remove(); roomRef.off(); roomRef = null; }
+    gameStarted = false; window.isMP = false; window.otherName = null;
     document.getElementById('gameContainer').classList.add('hidden');
-    document.getElementById('exitGameBtn').style.display = 'none';
-    document.getElementById('friendNameDisplay').innerHTML = '';
+    document.getElementById('exitBtn').style.display = 'none';
+    document.getElementById('ui_friend').style.display = 'none';
+    document.getElementById('saveFriendPopup').classList.remove('show');
     showScreen('startScreen');
-    showStatus('🔌 Offline', 'rgba(0,0,0,0.7)');
-
-    // Resetar jogo
-    if (typeof resetGame === 'function') resetGame();
+    setStatus('🔌 Offline', 'rgba(0,0,0,0.75)');
+    if (typeof window.resetGame === 'function') window.resetGame();
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// SALVAR AMIGO
-// ═══════════════════════════════════════════════════════════════════
+// ── SALVAR AMIGO ───────────────────────────────────────────
 document.getElementById('saveYesBtn').onclick = () => {
     const friends = JSON.parse(localStorage.getItem('princesa_friends') || '[]');
-    if (otherPlayerNameFB && !friends.some(f => f.name === otherPlayerNameFB)) {
-        friends.push({ name: otherPlayerNameFB, code: otherPlayerId });
+    if (otherName && !friends.find(f => f.name === otherName)) {
+        friends.push({ name: otherName, code: otherId });
         localStorage.setItem('princesa_friends', JSON.stringify(friends));
-        showStatus(`✅ ${otherPlayerNameFB} salvo!`, 'rgba(0,100,0,0.9)');
+        setStatus('✅ ' + otherName + ' salvo!', '#003300');
     }
-    document.getElementById('saveFriendPopup').style.display = 'none';
+    document.getElementById('saveFriendPopup').classList.remove('show');
 };
-document.getElementById('saveNoBtn').onclick = () => { document.getElementById('saveFriendPopup').style.display = 'none'; };
+document.getElementById('saveNoBtn').onclick = () => document.getElementById('saveFriendPopup').classList.remove('show');
 
-// ═══════════════════════════════════════════════════════════════════
-// EVENTOS DOS BOTÕES DE TELA
-// ═══════════════════════════════════════════════════════════════════
-document.getElementById('copyCodeBtn').onclick = () => {
-    navigator.clipboard.writeText(MY_CODE).catch(()=>{});
-    showStatus('✅ Código copiado!', 'rgba(0,100,0,0.9)');
-};
-document.getElementById('createRoomBtn').onclick = () => createMultiplayerRoom();
-document.getElementById('joinRoomBtn').onclick = () => showScreen('joinCodeScreen');
-document.getElementById('soloBtn').onclick = startSolo;
+// ── BOTÕES DE TELA ─────────────────────────────────────────
+document.getElementById('copyCodeBtn').onclick   = () => { navigator.clipboard.writeText(MY_CODE).catch(()=>{}); setStatus('✅ Código copiado!', '#003300'); };
+document.getElementById('createRoomBtn').onclick = createRoom;
+document.getElementById('joinRoomBtn').onclick   = () => showScreen('joinCodeScreen');
+document.getElementById('soloBtn').onclick       = startSolo;
 document.getElementById('confirmJoinBtn').onclick = () => {
-    const code = document.getElementById('roomCodeInput').value.trim();
-    if (code.length !== 6) { alert('❌ Código deve ter 6 dígitos!'); return; }
-    joinRoom(code);
+    const c = document.getElementById('roomCodeInput').value.trim();
+    if (c.length !== 6) { alert('Código deve ter 6 dígitos!'); return; }
+    joinRoom(c);
 };
 document.getElementById('cancelJoinBtn').onclick = () => showScreen('startScreen');
-document.getElementById('cancelRoomBtn').onclick = () => { exitGame(); };
-document.getElementById('exitGameBtn').onclick = exitGame;
-document.getElementById('acceptRequestBtn').onclick = () => {
-    document.getElementById('friendRequestPopup').style.display = 'none';
-    actuallyStartGame();
-};
-document.getElementById('rejectRequestBtn').onclick = () => {
-    document.getElementById('friendRequestPopup').style.display = 'none';
-    showStatus('❌ Convite recusado', 'rgba(150,0,0,0.9)');
-};
+document.getElementById('cancelRoomBtn').onclick = exitGame;
+document.getElementById('exitBtn').onclick       = exitGame;
 
-// ═══════════════════════════════════════════════════════════════════
-// ════════════════════ JOGO ════════════════════
-// ═══════════════════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════════
+//  MOTOR DO JOGO
+// ══════════════════════════════════════════════════════════
 (function GameEngine() {
+
     const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    let W = 800, H = 400;
-    const GROUND_Y = 370;
+    const ctx    = canvas.getContext('2d');
 
-    function resize() {
-        const c = canvas.parentElement;
-        canvas.width  = c ? c.clientWidth  : window.innerWidth;
-        canvas.height = Math.min(window.innerHeight - 155, 480);
-        W = canvas.width; H = canvas.height;
+    // Redimensionar canvas corretamente
+    function resizeCanvas() {
+        const container = document.getElementById('gameContainer');
+        const panelTop  = container.querySelector('.info-panel');
+        const controls  = container.querySelector('.touch-controls');
+        const footer    = container.querySelector('.controls-footer');
+
+        // altura disponível = total - painel info - botões - footer
+        const usedH = (panelTop  ? panelTop.offsetHeight  : 0)
+                    + (controls  ? controls.offsetHeight   : 0)
+                    + (footer    ? footer.offsetHeight      : 0);
+
+        canvas.width  = container.clientWidth  || window.innerWidth;
+        canvas.height = Math.max(200, (window.innerHeight - usedH));
     }
-    window.addEventListener('resize', resize);
-    resize();
 
-    // ── ÁUDIO ──────────────────────────────────────────────────────
-    let audioCtx = null, musicGain = null, isPlaying = false, audioEnabled = false;
-    let songIdx = 0, songTimer = null;
+    // Rodar resize quando o container fica visível e no resize de janela
+    const resizeObs = new ResizeObserver(() => resizeCanvas());
+    resizeObs.observe(document.getElementById('gameContainer'));
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Constantes
+    const GROUND_FRAC = 0.82; // chão a 82% da altura do canvas
+    function GY() { return Math.floor(canvas.height * GROUND_FRAC); }
+
+    const GRAV = 0.65, JUMP_V = -11, ACC = 0.8, MAX_SPD = 6, FRIC = 0.91;
+
+    // ── ÁUDIO ─────────────────────────────────────────────
+    let AC = null, musicGain = null, playing = false, audioON = false;
+    let sIdx = 0, sTim = null;
     const TEMPO = 0.155;
     const SONG = [
         ["E5",1],["E5",1],["R",1],["E5",1],["R",1],["C5",1],["E5",1],
@@ -570,218 +471,159 @@ document.getElementById('rejectRequestBtn').onclick = () => {
         ["A5",1],["B5",1],["C6",4],["G5",1],["E5",1],["C5",4],
         ["C5",2],["G4",2],["E4",8]
     ];
+    const NMAP = {"C":-9,"C#":-8,"D":-7,"D#":-6,"E":-5,"F":-4,"F#":-3,"G":-2,"G#":-1,"A":0,"A#":1,"B":2};
+    function nFreq(n){ return 440*Math.pow(2,(NMAP[n.slice(0,-1)]+(+n.slice(-1)-4)*12)/12); }
+    function initAC(){ if(AC)return; AC=new(window.AudioContext||window.webkitAudioContext)(); musicGain=AC.createGain(); musicGain.gain.value=0.28; musicGain.connect(AC.destination); }
+    function playNote(n,t,d){ if(n==="R")return; const o=AC.createOscillator(),g=AC.createGain(); o.type="square"; o.frequency.value=nFreq(n)*0.65; g.gain.setValueAtTime(0.001,t); g.gain.exponentialRampToValueAtTime(0.22,t+0.01); g.gain.exponentialRampToValueAtTime(0.001,t+d); o.connect(g); g.connect(musicGain); o.start(t); o.stop(t+d); }
+    function songTick(){ if(!AC||!playing)return; if(sIdx>=SONG.length)sIdx=0; const[n,l]=SONG[sIdx++]; playNote(n,AC.currentTime,TEMPO*l); sTim=setTimeout(songTick,TEMPO*l*1000); }
+    function startMusic(){ initAC(); if(AC.state==='suspended')AC.resume(); if(playing)return; playing=true; sIdx=0; songTick(); }
+    function sfx(freq,type,dur,vol){ if(!AC||!audioON)return; const o=AC.createOscillator(),g=AC.createGain(); o.type=type; o.frequency.value=freq; g.gain.value=vol||0.22; o.connect(g); g.connect(AC.destination); o.start(); g.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+dur); o.stop(AC.currentTime+dur); }
+    function enableAudio(){ if(audioON)return; audioON=true; startMusic(); }
+    document.body.addEventListener('touchstart', enableAudio, {once:true, passive:true});
+    document.body.addEventListener('click',      enableAudio, {once:true});
 
-    function noteFreq(n) {
-        const m={"C":-9,"C#":-8,"D":-7,"D#":-6,"E":-5,"F":-4,"F#":-3,"G":-2,"G#":-1,"A":0,"A#":1,"B":2};
-        return 440*Math.pow(2,(m[n.slice(0,-1)]+(parseInt(n.slice(-1))-4)*12)/12);
-    }
-    function initAudio() {
-        if(audioCtx) return;
-        audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-        musicGain = audioCtx.createGain(); musicGain.gain.value=0.3;
-        musicGain.connect(audioCtx.destination);
-    }
-    function playNote(note,start,dur) {
-        if(note==="R") return;
-        const freq=noteFreq(note)*0.65;
-        const osc=audioCtx.createOscillator(), g=audioCtx.createGain();
-        osc.type="square"; osc.frequency.value=freq;
-        g.gain.setValueAtTime(0.0001,start);
-        g.gain.exponentialRampToValueAtTime(0.22,start+0.01);
-        g.gain.exponentialRampToValueAtTime(0.0001,start+dur);
-        osc.connect(g); g.connect(musicGain);
-        osc.start(start); osc.stop(start+dur);
-    }
-    function playSong() {
-        if(!audioCtx||!isPlaying) return;
-        if(songIdx>=SONG.length) songIdx=0;
-        const [n,l]=SONG[songIdx++];
-        playNote(n,audioCtx.currentTime,TEMPO*l);
-        songTimer=setTimeout(playSong,TEMPO*l*1000);
-    }
-    function startMusic() {
-        initAudio();
-        if(audioCtx.state==='suspended') audioCtx.resume();
-        if(isPlaying) return;
-        isPlaying=true; songIdx=0;
-        if(songTimer) clearTimeout(songTimer);
-        playSong();
-    }
-    function sfx(freq,type,dur,vol) {
-        if(!audioCtx||!audioEnabled) return;
-        const o=audioCtx.createOscillator(),g=audioCtx.createGain();
-        o.type=type; o.frequency.value=freq;
-        g.gain.value=vol||0.25;
-        o.connect(g); g.connect(audioCtx.destination);
-        o.start(); g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+dur);
-        o.stop(audioCtx.currentTime+dur);
-    }
-    function enableAudio() {
-        if(audioEnabled) return;
-        audioEnabled=true; startMusic();
-    }
-    document.body.addEventListener('click',enableAudio,{once:true});
-    document.body.addEventListener('touchstart',enableAudio,{once:true});
+    // ── ESTADO ────────────────────────────────────────────
+    let phase=1, score=0, coins=0, lives=33, att=3;
+    let active=true, phDone=false, phTrans=false;
+    let camX=0, worldW=11000;
+    let respawn=false, respawnTX=0;
+    let jumpAnim=0, legA=0;
 
-    // ── ESTADO ─────────────────────────────────────────────────────
-    let phase=1, score=0, coins=0, lives=33, attempts=3;
-    let gameActive=true, phaseComplete=false, phaseTransitioning=false;
-    let camX=0;
-    let worldW=11000;
-    let respawning=false, respawnTargetX=0;
-    let jumpAnimTimer=0, legAnim=0;
+    function mkP(){ return {x:150, y:GY()-38, w:34, h:38, vx:0, vy:0, onG:true, fr:true, inv:0}; }
+    let P = mkP();
 
-    let player = mkPlayer();
-    function mkPlayer() {
-        return { x:150, y:GROUND_Y-38, w:34, h:38, vx:0, vy:0, onGround:true, facingRight:true, invincible:0 };
-    }
+    let torches=[], plats=[], enems=[], coinsA=[], birds=[];
+    let stars=[], shooting=[];
+    let planet={x:0,y:0,r:80,c1:'#4a90d9',c2:'#1a407a',ring:false};
+    let guard=null, mush=null;
 
-    window.playerX = player.x;
-    window.playerY = player.y;
-    window.playerFacingRight = true;
+    // ── CONTROLES ─────────────────────────────────────────
+    let L=false, R=false, jumpQ=false;
 
-    let torches=[], platforms=[], enemies=[], coinsArr=[], birds=[];
-    let spaceStars=[], shootingStars=[];
-    let planet={x:0,y:0,r:0,c1:'',c2:'',ring:false};
-    let guardian=null, mushroom=null;
-
-    const G=0.68, JUMP=-10.3, ACC=0.78, MAX_SPD=5.8, FRIC=0.92;
-
-    // ── CONTROLES ──────────────────────────────────────────────────
-    let left=false, right=false, jumpQ=false;
-
-    function addBtn(id, pressKey, releaseKey) {
+    function mkBtn(id, down, up) {
         const el = document.getElementById(id);
-        const onDown = e => { e.preventDefault(); if(pressKey==='jump') jumpQ=true; else if(pressKey==='left') left=true; else right=true; };
-        const onUp  = e => { if(releaseKey==='left') left=false; else if(releaseKey==='right') right=false; };
-        el.addEventListener('mousedown', onDown);
-        el.addEventListener('touchstart', onDown, {passive:false});
-        if(releaseKey) {
-            el.addEventListener('mouseup', onUp);
-            el.addEventListener('touchend', onUp);
-            el.addEventListener('mouseleave', onUp);
+        if (!el) return;
+        el.addEventListener('mousedown',  e => { e.preventDefault(); down(); }, {passive:false});
+        el.addEventListener('touchstart', e => { e.preventDefault(); down(); }, {passive:false});
+        if (up) {
+            el.addEventListener('mouseup',   e => { e.preventDefault(); up(); }, {passive:false});
+            el.addEventListener('touchend',  e => { e.preventDefault(); up(); }, {passive:false});
+            el.addEventListener('mouseleave',e => { up(); });
         }
     }
-    addBtn('leftBtn','left','left');
-    addBtn('rightBtn','right','right');
-    addBtn('jumpBtn','jump',null);
-    document.getElementById('torchBtn').addEventListener('click', e => { e.preventDefault(); throwTorch(); });
-    document.getElementById('torchBtn').addEventListener('touchstart', e => { e.preventDefault(); throwTorch(); }, {passive:false});
+    mkBtn('btnLeft',  ()=>{ L=true;  }, ()=>{ L=false;  });
+    mkBtn('btnRight', ()=>{ R=true;  }, ()=>{ R=false;  });
+    mkBtn('btnJump',  ()=>{ jumpQ=true; }, null);
+    mkBtn('btnFire',  ()=>{ throwTorch(); }, null);
 
     window.addEventListener('keydown', e => {
-        if(e.key==='ArrowLeft')  { left=true; e.preventDefault(); }
-        if(e.key==='ArrowRight') { right=true; e.preventDefault(); }
+        if(e.key==='ArrowLeft')  { L=true;      e.preventDefault(); }
+        if(e.key==='ArrowRight') { R=true;      e.preventDefault(); }
         if(e.key==='ArrowUp'||e.key===' ') { jumpQ=true; e.preventDefault(); }
-        if(e.key==='t') throwTorch();
+        if(e.key==='z'||e.key==='Z') throwTorch();
     });
     window.addEventListener('keyup', e => {
-        if(e.key==='ArrowLeft')  left=false;
-        if(e.key==='ArrowRight') right=false;
+        if(e.key==='ArrowLeft')  L=false;
+        if(e.key==='ArrowRight') R=false;
     });
 
-    // ── TOCHA ──────────────────────────────────────────────────────
+    // ── TOCHA ─────────────────────────────────────────────
     function throwTorch() {
-        sfx(600,'sine',0.2);
-        torches.push({ x:player.x+(player.facingRight?player.w+5:-20), y:player.y+player.h/2-8, vx:player.facingRight?9:-9, vy:-3, w:12, h:12 });
+        sfx(600,'sine',0.18);
+        torches.push({ x:P.x+(P.fr?P.w+4:-18), y:P.y+P.h/2-6, vx:P.fr?9:-9, vy:-3, w:11, h:11 });
     }
 
-    // ── BUILD FASE ─────────────────────────────────────────────────
-    function buildPhase(p) {
-        worldW = 10000 + p*1000;
-        spaceStars = Array.from({length:150},()=>({ x:Math.random()*1300, y:Math.random()*330, s:Math.random()*2+0.5, a:Math.random(), spd:0.008+Math.random()*0.018 }));
-        shootingStars=[];
-        const cols=[["#4a90d9","#1a407a"],["#ff6b6b","#8b0000"],["#e066ff","#5d008b"],["#3ae3b5","#0a5c43"],["#ffb347","#b85300"]];
-        const c=cols[p%cols.length];
-        planet={ x:120+Math.random()*500, y:40+Math.random()*110, r:60+Math.random()*70, c1:c[0], c2:c[1], ring:p%2===0 };
+    // ── BUILD FASE ────────────────────────────────────────
+    function buildPhase(ph) {
+        const GY_VAL = GY();
+        worldW = 10000 + ph*1000;
+        const COLS=[["#4a90d9","#1a407a"],["#ff6b6b","#8b0000"],["#e066ff","#5d008b"],["#3ae3b5","#0a5c43"],["#ffb347","#b85300"]];
+        const c = COLS[ph % COLS.length];
+        planet = { x:130+Math.random()*450, y:45+Math.random()*100, r:65+Math.random()*65, c1:c[0], c2:c[1], ring:ph%2===0 };
 
-        guardian={ x:worldW-200, y:GROUND_Y-95, w:85, h:95, alive:true, hits:0, dir:-1, timer:0 };
-        mushroom = p>=8 ? { x:worldW-520, y:GROUND_Y-65, w:40, h:40, taken:false } : null;
+        stars   = Array.from({length:150}, ()=>({x:Math.random()*1300, y:Math.random()*canvas.height*0.75, s:Math.random()*2+0.5, a:Math.random(), sp:0.008+Math.random()*0.018}));
+        shooting = [];
 
-        platforms=[{x:0,y:GROUND_Y,w:worldW,h:20}];
-        for(let i=0;i<15+p;i++){
-            const px=300+i*380+p*15, py=GROUND_Y-50-(i%5)*38;
-            if(px<worldW-250){
-                platforms.push({x:px,y:py,w:78,h:22});
-                if(p>10&&i%3===0) platforms.push({x:px+70,y:py-48,w:66,h:22});
-            }
+        guard = { x:worldW-200, y:GY_VAL-95, w:85, h:95, alive:true, hits:0, dir:-1, t:0 };
+        mush  = ph>=8 ? { x:worldW-520, y:GY_VAL-65, w:40, h:40, done:false } : null;
+
+        plats = [{ x:0, y:GY_VAL, w:worldW, h:30 }];
+        for(let i=0;i<15+ph;i++){
+            const px=300+i*380+ph*15, py=GY_VAL-50-(i%5)*38;
+            if(px<worldW-260){ plats.push({x:px,y:py,w:78,h:22}); if(ph>10&&i%3===0) plats.push({x:px+72,y:py-46,w:66,h:22}); }
         }
 
-        enemies=[];
-        for(let i=0;i<25+Math.floor(p*1.8);i++){
-            const ex=260+i*215+p*10;
-            if(ex<worldW-320) enemies.push({x:ex,y:GROUND_Y-34,alive:true,type:i%4,dir:i%2?1:-1,fr:0});
+        enems=[];
+        for(let i=0;i<25+Math.floor(ph*1.8);i++){
+            const ex=260+i*215+ph*10;
+            if(ex<worldW-330) enems.push({x:ex,y:GY_VAL-34,alive:true,type:i%4,dir:i%2?1:-1,fr:0});
         }
-        platforms.forEach(pl=>{
-            if(pl.y<GROUND_Y-30&&Math.random()>0.42)
-                enemies.push({x:pl.x+15,y:pl.y-32,alive:true,type:Math.random()*4|0,dir:Math.random()>.5?1:-1,fr:0});
+        plats.forEach(pl => {
+            if(pl.y < GY_VAL-30 && Math.random()>0.44)
+                enems.push({x:pl.x+14,y:pl.y-32,alive:true,type:Math.random()*4|0,dir:Math.random()>.5?1:-1,fr:0});
         });
 
-        coinsArr=[];
+        coinsA=[];
         for(let i=0;i<250;i++){
-            let cx=120+(i*47)%(worldW-200), cy=GROUND_Y-58;
-            if(i%3===0) cy=GROUND_Y-95;
-            if(i%5===0) cy=GROUND_Y-140;
-            coinsArr.push({x:cx,y:cy,w:22,h:22,got:false});
+            let cx=130+(i*47)%(worldW-220), cy=GY_VAL-60;
+            if(i%3===0) cy=GY_VAL-100; if(i%5===0) cy=GY_VAL-148;
+            coinsA.push({x:cx,y:cy,w:20,h:20,got:false});
         }
 
-        birds=Array.from({length:10},()=>({x:Math.random()*(worldW+600),y:35+Math.random()*110,spd:0.5+Math.random()*0.7,wing:Math.random()*Math.PI*2,sz:4+Math.random()*4}));
+        birds = Array.from({length:10}, ()=>({x:Math.random()*(worldW+600),y:35+Math.random()*110,sp:0.5+Math.random()*0.7,wing:Math.random()*Math.PI*2,sz:4+Math.random()*4}));
     }
 
-    // ── UI ─────────────────────────────────────────────────────────
+    // ── UI ────────────────────────────────────────────────
     function updateUI() {
-        document.getElementById('phaseText').innerHTML=`FASE ${phase}/33`;
-        document.getElementById('scoreText').innerHTML=score|0;
-        document.getElementById('coinText').innerHTML=coins;
-        document.getElementById('globalLivesText').innerHTML=`💖 ${lives}`;
-        document.getElementById('chanceText').innerHTML=`🎲 ${attempts}/3`;
+        document.getElementById('ui_phase').textContent  = 'FASE '+phase+'/33';
+        document.getElementById('ui_score').textContent  = score|0;
+        document.getElementById('ui_coins').textContent  = coins;
+        document.getElementById('ui_lives').textContent  = '💖 '+lives;
+        document.getElementById('ui_att').textContent    = '🎲 '+att+'/3';
     }
 
-    // ── VIDAS / RESPAWN ────────────────────────────────────────────
-    function loseLife() {
-        sfx(220,'sawtooth',0.4,0.35);
-        if(attempts>1){ attempts--; updateUI(); doRespawn(); }
-        else { attempts=3; lives--; updateUI(); if(lives<=0){alert('💀 GAME OVER!'); exitGame();} else loadPhase(phase); }
+    // ── VIDA ──────────────────────────────────────────────
+    function loseLife(){
+        sfx(200,'sawtooth',0.45,0.35);
+        if(att>1){ att--; updateUI(); doRespawn(); }
+        else { att=3; lives--; updateUI(); if(lives<=0){alert('💀 GAME OVER!'); exitGame();} else loadPhase(phase); }
     }
-    function doRespawn() {
-        respawning=true; respawnTargetX=player.x;
-        player.invincible=70; player.x=80; player.vx=12; player.vy=0;
-    }
+    function doRespawn(){ respawn=true; respawnTX=P.x; P.inv=80; P.x=80; P.vx=12; P.vy=0; }
 
-    // ── COLISÕES ───────────────────────────────────────────────────
-    function collide(ent) {
+    // ── COLISÃO ───────────────────────────────────────────
+    function doCollide(e) {
         let grounded=false;
-        for(const pl of platforms){
-            if(ent.x+ent.w>pl.x&&ent.x<pl.x+pl.w&&ent.y+ent.h<=pl.y+14&&ent.y+ent.h+ent.vy>=pl.y){
-                ent.y=pl.y-ent.h; ent.vy=0; grounded=true; break;
+        for(const pl of plats){
+            if(e.x+e.w>pl.x && e.x<pl.x+pl.w && e.y+e.h<=pl.y+14 && e.y+e.h+e.vy>=pl.y){
+                e.y=pl.y-e.h; e.vy=0; grounded=true; break;
             }
         }
-        ent.onGround=grounded;
-        if(ent.y+ent.h>=GROUND_Y&&!grounded){ ent.y=GROUND_Y-ent.h; ent.vy=0; ent.onGround=true; }
+        e.onG = grounded;
+        const GY_VAL = GY();
+        if(e.y+e.h >= GY_VAL && !grounded){ e.y=GY_VAL-e.h; e.vy=0; e.onG=true; }
     }
 
-    // ── GUARDIAN ──────────────────────────────────────────────────
-    function updateGuardian() {
-        if(!guardian||!guardian.alive) return;
-        guardian.timer++; if(guardian.timer>55){guardian.dir*=-1; guardian.timer=0;}
-        guardian.x+=guardian.dir*0.7;
-        guardian.x=Math.max(worldW-290,Math.min(worldW-120,guardian.x));
-        if(player.x<guardian.x+guardian.w&&player.x+player.w>guardian.x&&player.y<guardian.y+guardian.h&&player.y+player.h>guardian.y){
-            if(player.invincible<=0&&!respawning) loseLife();
-        }
+    // ── GUARDIÃO ──────────────────────────────────────────
+    function tickGuard(){
+        if(!guard||!guard.alive) return;
+        guard.t++; if(guard.t>55){guard.dir*=-1; guard.t=0;}
+        guard.x+=guard.dir*0.7;
+        guard.x=Math.max(worldW-290,Math.min(worldW-120,guard.x));
+        if(P.x<guard.x+guard.w&&P.x+P.w>guard.x&&P.y<guard.y+guard.h&&P.y+P.h>guard.y)
+            if(P.inv<=0&&!respawn) loseLife();
     }
 
-    // ── ATUALIZAR TOCHAS ──────────────────────────────────────────
-    function updateTorches() {
+    // ── TOCHAS ────────────────────────────────────────────
+    function tickTorches(){
         for(let i=torches.length-1;i>=0;i--){
             const t=torches[i]; t.x+=t.vx; t.y+=t.vy; t.vy+=0.32;
-            if(t.y>H+60||t.x<-200||t.x>worldW+200){torches.splice(i,1);continue;}
-            if(guardian&&guardian.alive&&t.x<guardian.x+guardian.w&&t.x+t.w>guardian.x&&t.y<guardian.y+guardian.h&&t.y+t.h>guardian.y){
-                guardian.hits++; sfx(700,'sine',0.1); torches.splice(i,1);
-                if(guardian.hits>=50){guardian.alive=false; score+=1000; updateUI();}
-                continue;
+            if(t.y>canvas.height+60||t.x<-200||t.x>worldW+200){torches.splice(i,1);continue;}
+            if(guard&&guard.alive&&t.x<guard.x+guard.w&&t.x+t.w>guard.x&&t.y<guard.y+guard.h&&t.y+t.h>guard.y){
+                guard.hits++; sfx(700,'sine',0.1); torches.splice(i,1);
+                if(guard.hits>=50){guard.alive=false; score+=1000; updateUI();} continue;
             }
-            for(let j=enemies.length-1;j>=0;j--){
-                const e=enemies[j];
+            for(let j=enems.length-1;j>=0;j--){
+                const e=enems[j];
                 if(e.alive&&t.x<e.x+32&&t.x+t.w>e.x&&t.y<e.y+32&&t.y+t.h>e.y){
                     e.alive=false; score+=50; updateUI(); torches.splice(i,1); break;
                 }
@@ -789,176 +631,171 @@ document.getElementById('rejectRequestBtn').onclick = () => {
         }
     }
 
-    // ── INIMIGOS ──────────────────────────────────────────────────
-    function updateEnemies() {
-        if(respawning) return;
-        for(const e of enemies){
+    // ── INIMIGOS ──────────────────────────────────────────
+    function tickEnems(){
+        if(respawn) return;
+        for(const e of enems){
             if(!e.alive) continue;
             if(e.type===2||e.type===3){e.x+=e.dir*0.9; if(e.x<60||e.x>worldW-90)e.dir*=-1;}
             if(e.type===1) e.fr+=0.08;
-            if(player.x<e.x+32&&player.x+player.w>e.x&&player.y<e.y+32&&player.y+player.h>e.y){
-                if(player.vy>0&&player.y+player.h-player.vy<=e.y+12){ e.alive=false; score+=100; updateUI(); player.vy=-8; }
-                else if(player.invincible<=0) { loseLife(); break; }
+            if(P.x<e.x+32&&P.x+P.w>e.x&&P.y<e.y+32&&P.y+P.h>e.y){
+                if(P.vy>0&&P.y+P.h-P.vy<=e.y+12){e.alive=false;score+=100;updateUI();P.vy=-8;}
+                else if(P.inv<=0){loseLife();break;}
             }
         }
     }
 
-    // ── MOEDAS ────────────────────────────────────────────────────
-    function updateCoins() {
-        for(const c of coinsArr){
-            if(!c.got&&player.x<c.x+c.w&&player.x+player.w>c.x&&player.y<c.y+c.h&&player.y+player.h>c.y){
-                c.got=true; coins++; score+=25; sfx(1046,'sine',0.15); updateUI();
+    // ── MOEDAS ────────────────────────────────────────────
+    function tickCoins(){
+        for(const c of coinsA){
+            if(!c.got&&P.x<c.x+c.w&&P.x+P.w>c.x&&P.y<c.y+c.h&&P.y+P.h>c.y){
+                c.got=true; coins++; score+=25; sfx(1046,'sine',0.14); updateUI();
             }
         }
     }
 
-    // ── CHECK FASE COMPLETA ────────────────────────────────────────
-    function checkComplete() {
-        if(phaseComplete||respawning||!gameActive||phaseTransitioning) return;
-        if(guardian&&guardian.alive) return;
-        if(player.x+player.w>worldW-80){
-            phaseComplete=true; gameActive=false; phaseTransitioning=true;
+    // ── FASE COMPLETA ─────────────────────────────────────
+    function checkEnd(){
+        if(phDone||respawn||!active||phTrans) return;
+        if(guard&&guard.alive) return;
+        if(P.x+P.w>worldW-90){
+            phDone=true; active=false; phTrans=true;
             [523,659,784,1047].forEach((f,i)=>setTimeout(()=>sfx(f,'square',0.3,0.18),i*110));
             setTimeout(()=>{
-                if(phase<33){ phase++; attempts=3; loadPhase(phase); }
+                if(phase<33){ phase++; att=3; loadPhase(phase); }
                 else { alert('🏆 PARABÉNS! VOCÊ ZEROU O JOGO! 🏆'); exitGame(); }
             }, 600);
         }
     }
 
-    // ── LOAD FASE ─────────────────────────────────────────────────
-    function loadPhase(p) {
-        phase=p; buildPhase(p);
-        player=mkPlayer(); camX=0; legAnim=0; jumpAnimTimer=0;
-        gameActive=true; phaseComplete=false; phaseTransitioning=false; respawning=false; torches=[];
+    // ── LOAD FASE ─────────────────────────────────────────
+    function loadPhase(ph){
+        phase=ph; buildPhase(ph);
+        P=mkP(); camX=0; legA=0; jumpAnim=0;
+        active=true; phDone=false; phTrans=false; respawn=false; torches=[];
         updateUI();
     }
+    window.resetGame = () => { score=0; coins=0; lives=33; att=3; loadPhase(1); };
 
-    // Expor resetGame para o botão sair
-    window.resetGame = () => loadPhase(1);
+    // ── UPDATE ────────────────────────────────────────────
+    function update(){
+        if(!active||phDone) return;
+        const GY_VAL = GY();
+        const W = canvas.width, H = canvas.height;
 
-    // ── LOOP DE ATUALIZAÇÃO ────────────────────────────────────────
-    function update() {
-        if(!gameActive||phaseComplete) return;
-
-        if(respawning){
-            player.x+=player.vx;
-            if(player.x>=respawnTargetX){ player.x=respawnTargetX; player.vx=0; respawning=false; player.invincible=45; }
-            player.vy+=G; player.y+=player.vy;
-            if(player.y+player.h>=GROUND_Y){ player.y=GROUND_Y-player.h; player.vy=0; }
-            camX+=(Math.max(0,Math.min(player.x+player.w/2-W/3.5,worldW-W))-camX)*0.09;
+        if(respawn){
+            P.x+=P.vx; if(P.x>=respawnTX){P.x=respawnTX;P.vx=0;respawn=false;P.inv=50;}
+            P.vy+=GRAV; P.y+=P.vy; if(P.y+P.h>=GY_VAL){P.y=GY_VAL-P.h;P.vy=0;}
+            camX += (Math.max(0,Math.min(P.x+P.w/2-W/3.5,worldW-W))-camX)*0.09;
             return;
         }
 
         // Estrelas
-        spaceStars.forEach(s=>{ s.a+=s.spd; if(s.a>1||s.a<0)s.spd*=-1; });
-        if(Math.random()>0.985&&shootingStars.length<3)
-            shootingStars.push({x:Math.random()*W,y:-20,vx:-(2+Math.random()*4),vy:2+Math.random()*4,life:1});
-        shootingStars.forEach((ss,i)=>{ ss.x+=ss.vx; ss.y+=ss.vy; ss.life-=0.016; if(ss.life<=0||ss.y>H)shootingStars.splice(i,1); });
+        stars.forEach(s=>{ s.a+=s.sp; if(s.a>1||s.a<0)s.sp*=-1; });
+        if(Math.random()>0.986&&shooting.length<3)
+            shooting.push({x:Math.random()*W,y:-15,vx:-(2+Math.random()*4),vy:2+Math.random()*4,life:1});
+        shooting.forEach((ss,i)=>{ ss.x+=ss.vx;ss.y+=ss.vy;ss.life-=0.016; if(ss.life<=0||ss.y>H)shooting.splice(i,1); });
 
-        birds.forEach(b=>{ b.x+=b.spd; if(b.x>worldW+200)b.x=-150; b.wing+=0.15; });
+        birds.forEach(b=>{ b.x+=b.sp; if(b.x>worldW+200)b.x=-150; b.wing+=0.15; });
 
-        updateTorches(); updateGuardian();
+        tickTorches(); tickGuard();
 
-        // Salto
-        if(jumpQ&&player.onGround){ player.vy=JUMP; player.onGround=false; jumpQ=false; jumpAnimTimer=10; }
-        jumpQ=false; // consumir mesmo que não salte
+        // Pulo
+        if(jumpQ && P.onG){ P.vy=JUMP_V; P.onG=false; jumpAnim=10; }
+        jumpQ=false;
 
         // Movimento
-        if(left){ player.vx=Math.max(-MAX_SPD,player.vx-ACC); player.facingRight=false; legAnim+=0.3; }
-        if(right){ player.vx=Math.min(MAX_SPD,player.vx+ACC); player.facingRight=true; legAnim+=0.3; }
-        if(!left&&!right) player.vx*=FRIC;
+        if(L){ P.vx=Math.max(-MAX_SPD,P.vx-ACC); P.fr=false; legA+=0.3; }
+        if(R){ P.vx=Math.min( MAX_SPD,P.vx+ACC); P.fr=true;  legA+=0.3; }
+        if(!L&&!R) P.vx*=FRIC;
 
-        player.vy+=G; player.x+=player.vx; player.y+=player.vy;
-        player.x=Math.max(50,Math.min(player.x,worldW-player.w-50));
-        collide(player);
+        P.vy+=GRAV; P.x+=P.vx; P.y+=P.vy;
+        P.x=Math.max(50,Math.min(P.x,worldW-P.w-50));
+        doCollide(P);
 
-        // Cogumelo
-        if(mushroom&&!mushroom.taken&&player.x<mushroom.x+40&&player.x+player.w>mushroom.x&&player.y<mushroom.y+40&&player.y+player.h>mushroom.y){
-            mushroom.taken=true; score+=500; updateUI();
+        if(mush&&!mush.done&&P.x<mush.x+40&&P.x+P.w>mush.x&&P.y<mush.y+40&&P.y+P.h>mush.y){
+            mush.done=true; score+=500; updateUI();
         }
+        if(P.y+P.h>H+100) loseLife();
+        tickEnems(); tickCoins(); checkEnd();
+        if(P.inv>0) P.inv--;
+        if(jumpAnim>0) jumpAnim--;
+        camX += (Math.max(0,Math.min(P.x+P.w/2-canvas.width/3.5,worldW-canvas.width))-camX)*0.09;
 
-        if(player.y+player.h>H+120) loseLife();
-        updateEnemies(); updateCoins(); checkComplete();
-        if(player.invincible>0) player.invincible--;
-        if(jumpAnimTimer>0) jumpAnimTimer--;
-        camX+=(Math.max(0,Math.min(player.x+player.w/2-W/3.5,worldW-W))-camX)*0.09;
-
-        window.playerX=player.x; window.playerY=player.y; window.playerFacingRight=player.facingRight;
-        if(window.isMultiplayerActive&&myPosRef&&!respawning)
-            myPosRef.set({x:player.x,y:player.y,facingRight:player.facingRight});
+        // Sincronizar multiplayer
+        if(window.isMP && myPosRef && !respawn)
+            myPosRef.set({x:P.x, y:P.y, fr:P.fr});
     }
 
-    // ── DESENHO ───────────────────────────────────────────────────
-    function draw() {
-        // Fundo espacial
+    // ── RENDER ────────────────────────────────────────────
+    function render(){
+        const W=canvas.width, H=canvas.height;
+        const GY_VAL=GY();
+        const cx=camX;
+
+        // Fundo
         const bg=ctx.createLinearGradient(0,0,0,H);
         bg.addColorStop(0,'#03020c'); bg.addColorStop(0.5,'#0b061a'); bg.addColorStop(1,'#170826');
         ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
 
         // Estrelas
-        spaceStars.forEach(s=>{
-            ctx.fillStyle=`rgba(255,255,255,${s.a})`;
-            ctx.fillRect(s.x,s.y,s.s,s.s);
-        });
+        stars.forEach(s=>{ ctx.fillStyle=`rgba(255,255,255,${s.a.toFixed(2)})`; ctx.fillRect(s.x,s.y,s.s,s.s); });
 
         // Estrelas cadentes
-        shootingStars.forEach(ss=>{
+        shooting.forEach(ss=>{
             ctx.save();
-            const tg=ctx.createLinearGradient(ss.x,ss.y,ss.x-ss.vx*3,ss.y-ss.vy*3);
-            tg.addColorStop(0,`rgba(255,220,100,${ss.life})`);
-            tg.addColorStop(1,'rgba(255,0,0,0)');
-            ctx.strokeStyle=tg; ctx.lineWidth=2.5;
+            const g2=ctx.createLinearGradient(ss.x,ss.y,ss.x-ss.vx*3,ss.y-ss.vy*3);
+            g2.addColorStop(0,`rgba(255,220,100,${ss.life.toFixed(2)})`);
+            g2.addColorStop(1,'rgba(255,0,0,0)');
+            ctx.strokeStyle=g2; ctx.lineWidth=2.5;
             ctx.beginPath(); ctx.moveTo(ss.x,ss.y); ctx.lineTo(ss.x-ss.vx*3,ss.y-ss.vy*3); ctx.stroke();
             ctx.restore();
         });
 
         // Planeta
-        const pdx=planet.x-camX*0.05;
-        if(pdx+160>0&&pdx-160<W){
+        const px2=planet.x-cx*0.05;
+        if(px2+planet.r+20>0 && px2-planet.r-20<W){
             ctx.save();
-            const pg=ctx.createRadialGradient(pdx-planet.r/3,planet.y-planet.r/3,planet.r/12,pdx,planet.y,planet.r);
+            const pg=ctx.createRadialGradient(px2-planet.r/3,planet.y-planet.r/3,planet.r/12,px2,planet.y,planet.r);
             pg.addColorStop(0,planet.c1); pg.addColorStop(0.8,planet.c2); pg.addColorStop(1,'#020105');
-            ctx.fillStyle=pg; ctx.beginPath(); ctx.arc(pdx,planet.y,planet.r,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle=pg; ctx.beginPath(); ctx.arc(px2,planet.y,planet.r,0,Math.PI*2); ctx.fill();
             if(planet.ring){
-                ctx.strokeStyle='rgba(230,180,255,0.4)'; ctx.lineWidth=7;
-                ctx.translate(pdx,planet.y); ctx.rotate(-0.25); ctx.scale(2,0.3);
-                ctx.beginPath(); ctx.arc(0,0,planet.r+18,0,Math.PI*2); ctx.stroke();
+                ctx.strokeStyle='rgba(230,180,255,0.38)'; ctx.lineWidth=7;
+                ctx.save(); ctx.translate(px2,planet.y); ctx.rotate(-0.25); ctx.scale(2,0.3);
+                ctx.beginPath(); ctx.arc(0,0,planet.r+18,0,Math.PI*2); ctx.stroke(); ctx.restore();
             }
             ctx.restore();
         }
 
         // Montanhas
         ctx.fillStyle='#201236';
-        for(let i=0;i<5;i++){
-            const mx=(i*320)-(camX*0.1)%900;
-            ctx.beginPath(); ctx.moveTo(mx,GROUND_Y-40); ctx.lineTo(mx+80,GROUND_Y-165); ctx.lineTo(mx+160,GROUND_Y-40); ctx.fill();
+        for(let i=0;i<6;i++){
+            const mx=(i*320)-(cx*0.1)%960;
+            ctx.beginPath(); ctx.moveTo(mx,GY_VAL-40); ctx.lineTo(mx+80,GY_VAL-165); ctx.lineTo(mx+160,GY_VAL-40); ctx.fill();
         }
 
         // Chão
-        ctx.fillStyle='#3a1e54'; ctx.fillRect(0,GROUND_Y-12,W,H);
+        ctx.fillStyle='#3a1e54'; ctx.fillRect(0,GY_VAL-12,W,H-GY_VAL+12);
 
         // Plataformas
-        platforms.forEach(pl=>{
-            const dx=pl.x-camX; if(dx+pl.w<0||dx>W) return;
+        plats.forEach(pl=>{
+            const dx=pl.x-cx; if(dx+pl.w<0||dx>W) return;
             ctx.fillStyle='#5c2d91'; ctx.fillRect(dx,pl.y,pl.w,pl.h);
             ctx.fillStyle='#431b6b'; ctx.fillRect(dx,pl.y+3,pl.w,5);
         });
 
         // Moedas
         const blink=(Date.now()/100|0)%2===0;
-        coinsArr.forEach(c=>{
-            if(c.got) return;
-            const dx=c.x-camX; if(dx+c.w<0||dx>W) return;
+        coinsA.forEach(c=>{
+            if(c.got) return; const dx=c.x-cx; if(dx+c.w<0||dx>W) return;
             ctx.fillStyle=blink?'#ffd700':'#ffaa00';
             ctx.beginPath(); ctx.arc(dx+c.w/2,c.y+c.h/2,c.w/2,0,Math.PI*2); ctx.fill();
             ctx.fillStyle='rgba(0,0,0,0.2)'; ctx.fillRect(dx+c.w/2-2,c.y+4,4,c.h-8);
         });
 
         // Inimigos
-        enemies.forEach(e=>{
-            if(!e.alive) return;
-            const dx=e.x-camX; if(dx+32<0||dx>W) return;
+        enems.forEach(e=>{
+            if(!e.alive) return; const dx=e.x-cx; if(dx+32<0||dx>W) return;
             ctx.fillStyle='#8b5a2b'; ctx.fillRect(dx,e.y,32,32);
             ctx.fillStyle='#593a18'; ctx.fillRect(dx+6,e.y+12,7,8); ctx.fillRect(dx+19,e.y+12,7,8);
             ctx.fillStyle='#000'; ctx.fillRect(dx+9,e.y+8,4,5); ctx.fillRect(dx+20,e.y+8,4,5);
@@ -966,9 +803,8 @@ document.getElementById('rejectRequestBtn').onclick = () => {
 
         // Pássaros
         birds.forEach(b=>{
-            const dx=b.x-camX; if(dx<-60||dx>W+60) return;
-            ctx.fillStyle='#a884e4';
-            ctx.beginPath(); ctx.ellipse(dx,b.y,b.sz,b.sz/1.5,0,0,Math.PI*2); ctx.fill();
+            const dx=b.x-cx; if(dx<-60||dx>W+60) return;
+            ctx.fillStyle='#a884e4'; ctx.beginPath(); ctx.ellipse(dx,b.y,b.sz,b.sz/1.5,0,0,Math.PI*2); ctx.fill();
             const wy=Math.sin(b.wing)>0?-4:3;
             ctx.fillStyle='#8250cc';
             ctx.beginPath(); ctx.moveTo(dx-b.sz,b.y); ctx.lineTo(dx-b.sz-5,b.y+wy); ctx.lineTo(dx-b.sz,b.y+1); ctx.fill();
@@ -976,67 +812,58 @@ document.getElementById('rejectRequestBtn').onclick = () => {
         });
 
         // Bandeira
-        const fx=worldW-100-camX;
+        const fx=worldW-100-cx;
         if(fx+60>0&&fx<W){
-            ctx.fillStyle='#b87a3a'; ctx.fillRect(fx,GROUND_Y-130,8,130);
-            ctx.fillStyle='#ff5533'; ctx.beginPath(); ctx.moveTo(fx+6,GROUND_Y-130); ctx.lineTo(fx+55,GROUND_Y-108); ctx.lineTo(fx+6,GROUND_Y-86); ctx.fill();
-            ctx.fillStyle='#ffdd99'; ctx.font='bold 18px monospace'; ctx.fillText('🏁',fx+18,GROUND_Y-140);
+            ctx.fillStyle='#b87a3a'; ctx.fillRect(fx,GY_VAL-130,8,130);
+            ctx.fillStyle='#ff5533'; ctx.beginPath(); ctx.moveTo(fx+6,GY_VAL-130); ctx.lineTo(fx+55,GY_VAL-108); ctx.lineTo(fx+6,GY_VAL-86); ctx.fill();
+            ctx.fillStyle='#ffdd99'; ctx.font='bold 18px monospace'; ctx.fillText('🏁',fx+18,GY_VAL-138);
         }
 
         // Cogumelo
-        if(mushroom&&!mushroom.taken){
-            const dx=mushroom.x-camX;
-            if(dx+40>0&&dx<W){
-                ctx.fillStyle='#ff4444'; ctx.fillRect(dx,mushroom.y,40,40);
-                ctx.fillStyle='#fff'; ctx.fillRect(dx+8,mushroom.y+8,24,24);
-                ctx.fillStyle='#ffff00'; ctx.font='bold 12px monospace'; ctx.fillText('+500',dx+4,mushroom.y-6);
-            }
-        }
+        if(mush&&!mush.done){ const dx=mush.x-cx; if(dx+40>0&&dx<W){ ctx.fillStyle='#ff4444'; ctx.fillRect(dx,mush.y,40,40); ctx.fillStyle='#fff'; ctx.fillRect(dx+8,mush.y+8,24,24); ctx.fillStyle='#ffff00'; ctx.font='bold 11px monospace'; ctx.fillText('+500',dx+3,mush.y-6); } }
 
         // Guardião
-        if(guardian&&guardian.alive){
-            const dx=guardian.x-camX;
-            if(dx+85>-60&&dx<W+60){
-                ctx.fillStyle='#8B0000'; ctx.fillRect(dx,guardian.y,85,95);
-                ctx.fillStyle='#AA0000'; ctx.fillRect(dx+10,guardian.y+15,65,60);
-                ctx.fillStyle='#660000'; ctx.beginPath(); ctx.ellipse(dx+42,guardian.y+45,30,35,0,0,Math.PI*2); ctx.fill();
+        if(guard&&guard.alive){
+            const dx=guard.x-cx;
+            if(dx+90>-60&&dx<W+60){
+                ctx.fillStyle='#8B0000'; ctx.fillRect(dx,guard.y,85,95);
+                ctx.fillStyle='#AA0000'; ctx.fillRect(dx+10,guard.y+15,65,60);
+                ctx.fillStyle='#660000'; ctx.beginPath(); ctx.ellipse(dx+42,guard.y+45,30,35,0,0,Math.PI*2); ctx.fill();
                 ctx.fillStyle='#FF0000';
-                ctx.beginPath(); ctx.arc(dx+25,guardian.y+40,10,0,Math.PI*2); ctx.fill();
-                ctx.beginPath(); ctx.arc(dx+60,guardian.y+40,10,0,Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(dx+25,guard.y+40,10,0,Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(dx+60,guard.y+40,10,0,Math.PI*2); ctx.fill();
                 ctx.fillStyle='#000';
-                ctx.beginPath(); ctx.arc(dx+23,guardian.y+38,4,0,Math.PI*2); ctx.fill();
-                ctx.beginPath(); ctx.arc(dx+58,guardian.y+38,4,0,Math.PI*2); ctx.fill();
-                // barra de vida
-                ctx.fillStyle='#FF0000'; ctx.fillRect(dx+10,guardian.y-15,65,8);
-                ctx.fillStyle='#00FF00'; ctx.fillRect(dx+10,guardian.y-15,65*Math.max(0,(50-guardian.hits)/50),8);
-                ctx.fillStyle='#FFF'; ctx.font='bold 9px monospace'; ctx.fillText(`${50-guardian.hits}hp`,dx+28,guardian.y-18);
+                ctx.beginPath(); ctx.arc(dx+23,guard.y+38,4,0,Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(dx+58,guard.y+38,4,0,Math.PI*2); ctx.fill();
+                ctx.fillStyle='#FF0000'; ctx.fillRect(dx+10,guard.y-15,65,8);
+                ctx.fillStyle='#00FF00'; ctx.fillRect(dx+10,guard.y-15,65*Math.max(0,(50-guard.hits)/50),8);
+                ctx.fillStyle='#fff'; ctx.font='bold 9px monospace'; ctx.fillText((50-guard.hits)+'hp',dx+28,guard.y-17);
             }
         }
 
         // Tochas
         torches.forEach(t=>{
-            const dx=t.x-camX; if(dx+12<-50||dx>W+50) return;
+            const dx=t.x-cx; if(dx+12<-50||dx>W+50) return;
             ctx.fillStyle='#ff6600'; ctx.fillRect(dx,t.y,t.w,t.h);
-            ctx.fillStyle='#ffcc00'; ctx.beginPath(); ctx.moveTo(dx+6,t.y-5); ctx.lineTo(dx+12,t.y); ctx.lineTo(dx,t.y); ctx.fill();
+            ctx.fillStyle='#ffcc00'; ctx.beginPath(); ctx.moveTo(dx+6,t.y-5); ctx.lineTo(dx+11,t.y); ctx.lineTo(dx,t.y); ctx.fill();
         });
 
         // Jogador remoto
-        if(window.isMultiplayerActive&&window.otherPlayerGlobal){
-            const rx=remotePlayerData.x-camX, ry=remotePlayerData.y;
+        if(window.isMP && window.otherName){
+            const rx=remotePos.x-cx, ry=remotePos.y;
             if(rx+34>0&&rx<W){
                 ctx.fillStyle='#44aaff'; ctx.fillRect(rx,ry,34,38);
                 ctx.fillStyle='#fec280'; ctx.fillRect(rx+6,ry+6,22,14);
                 ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(rx+12,ry+12,3,0,Math.PI*2); ctx.fill();
-                ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(rx+11,ry+11,1.2,0,Math.PI*2); ctx.fill();
-                ctx.fillStyle='#ff1493'; ctx.fillRect(rx+4,ry-6,28,10);
+                ctx.fillStyle='#ff1493'; ctx.fillRect(rx+4,ry-5,28,9);
                 ctx.fillStyle='#ffd700'; ctx.fillRect(rx+11,ry-13,14,8);
-                ctx.fillStyle='#fff'; ctx.font='bold 9px monospace'; ctx.fillText(window.otherPlayerGlobal,rx+3,ry-16);
+                ctx.fillStyle='#fff'; ctx.font='bold 9px monospace'; ctx.fillText(window.otherName,rx+2,ry-16);
             }
         }
 
-        // Personagem principal
-        if(!(player.invincible>0&&(Date.now()/60|0)%3===0)){
-            const x=player.x-camX, y=player.y;
+        // Jogador principal
+        if(!(P.inv>0 && (Date.now()/60|0)%3===0)){
+            const x=P.x-cx, y=P.y;
             if(x+34>0&&x<W){
                 ctx.fillStyle='#ff69b4'; ctx.fillRect(x,y,34,38);
                 ctx.fillStyle='#fec280'; ctx.fillRect(x+6,y+6,22,14);
@@ -1049,11 +876,11 @@ document.getElementById('rejectRequestBtn').onclick = () => {
                 ctx.fillStyle='#ff1493'; ctx.fillRect(x+4,y-5,28,9);
                 ctx.fillStyle='#fff'; ctx.fillRect(x+18,y-3,8,5);
                 ctx.fillStyle='#ffb6c1'; ctx.fillRect(x+5,y+24,26,12);
-                const lm=Math.sin(legAnim)*5;
+                const lm=Math.sin(legA)*5;
                 ctx.fillStyle='#ffb6c1';
-                ctx.fillRect(x+5,y+32,7,7+(player.onGround?lm:2));
-                ctx.fillRect(x+22,y+32,7,7-(player.onGround?lm:2));
-                if(jumpAnimTimer>0||!player.onGround){ ctx.fillStyle='#fec280'; ctx.fillRect(x+26,y+8,6,8); ctx.fillRect(x+28,y+6,4,4); }
+                ctx.fillRect(x+5,y+32,7,7+(P.onG?lm:2));
+                ctx.fillRect(x+22,y+32,7,7-(P.onG?lm:2));
+                if(jumpAnim>0||!P.onG){ ctx.fillStyle='#fec280'; ctx.fillRect(x+26,y+8,6,8); ctx.fillRect(x+28,y+6,4,4); }
                 ctx.fillStyle='#ffd700'; ctx.fillRect(x+11,y-12,14,8);
                 for(let i=0;i<5;i++) ctx.fillRect(x+12+i*3,y-16,2,6);
                 ctx.fillStyle='#ff4444'; ctx.fillRect(x+14,y-14,3,3);
@@ -1061,20 +888,13 @@ document.getElementById('rejectRequestBtn').onclick = () => {
                 ctx.fillStyle='#4444ff'; ctx.fillRect(x+26,y-14,3,3);
                 ctx.fillStyle='#ff00ff'; ctx.fillRect(x+17,y-17,4,5);
                 const nm=document.getElementById('playerName').value.trim()||'Princesa';
-                ctx.fillStyle='#fff'; ctx.font='bold 9px monospace'; ctx.fillText(nm,x+3,y-19);
+                ctx.fillStyle='#fff'; ctx.font='bold 9px monospace'; ctx.fillText(nm,x+2,y-19);
             }
         }
-
-        // HUD mini
-        ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.fillRect(8,8,190,24);
-        ctx.fillStyle='#ff69b4'; ctx.font='bold 10px monospace'; ctx.fillText('⭐ PRINCESA ⭐',13,26);
     }
 
-    // ── GAME LOOP ──────────────────────────────────────────────────
-    function loop() {
-        update(); draw();
-        requestAnimationFrame(loop);
-    }
+    // ── LOOP ──────────────────────────────────────────────
+    function loop(){ update(); render(); requestAnimationFrame(loop); }
 
     loadPhase(1);
     loop();
